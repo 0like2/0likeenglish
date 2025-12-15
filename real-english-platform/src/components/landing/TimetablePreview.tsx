@@ -1,5 +1,4 @@
-"use client";
-
+import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Clock, User, Users } from "lucide-react";
@@ -76,11 +75,11 @@ export default function TimetablePreview() {
 
                     {/* Time Slots Rows */}
                     {timeSlots.map((time, idx) => (
-                        <>
+                        <React.Fragment key={idx}>
                             {/* Time Label */}
                             <div key={`time-${idx}`} className="flex md:flex-col items-center justify-center p-4 bg-slate-50 rounded-xl font-medium text-slate-500 text-sm md:text-base">
                                 <Clock className="w-4 h-4 md:mb-2 mr-2 md:mr-0 inline" />
-                                {time}
+                                <div className="text-center">{time}</div>
                             </div>
 
                             {/* Class Cards */}
@@ -112,7 +111,7 @@ export default function TimetablePreview() {
                                     )}
                                 </motion.div>
                             ))}
-                        </>
+                        </React.Fragment>
                     ))}
                 </div>
             </div>
