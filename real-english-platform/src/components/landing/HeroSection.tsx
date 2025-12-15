@@ -36,6 +36,9 @@ export default function HeroSection() {
         >
           Real English, <br className="md:hidden" />
           <span className="text-blue-600">진짜 실력</span>을 만드는 곳
+          <span className="text-2xl md:text-4xl font-medium text-slate-600 mt-4 block tracking-normal">
+            수능영어는 0like 이영락
+          </span>
         </motion.h1>
 
         {/* Subheadline */}
@@ -43,11 +46,11 @@ export default function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="text-lg md:text-xl text-slate-600 max-w-[700px] leading-relaxed"
+          className="text-lg md:text-xl text-slate-600 max-w-[800px] leading-relaxed break-keep"
         >
-          단순한 암기가 아닌, 언어의 본질을 꿰뚫는 강의.
-          <br />
-          반응형 학습 관리 시스템으로 당신의 성장을 체계적으로 관리합니다.
+          Olike 영어 커리큘럼은 여러분의 성공적인 수능을 위해 <b className="text-slate-800">효율</b>을 중점으로 설계되었습니다.
+          <br className="hidden md:block" />
+          절대 평가 시대의 영어! 짧은 시간 정확한 풀이로 효율적으로 공부해야 합니다!
         </motion.p>
 
         {/* CTA Buttons */}
@@ -57,15 +60,15 @@ export default function HeroSection() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="flex flex-col sm:flex-row gap-4 w-full justify-center"
         >
-          <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 h-12 text-lg rounded-full shadow-lg shadow-blue-600/20" asChild>
+          <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-10 h-12 text-lg rounded-full shadow-lg shadow-blue-600/20" asChild>
             <Link href="/auth/login">
-              학생 로그인 <ArrowRight className="ml-2 w-4 h-4" />
+              로그인 <ArrowRight className="ml-2 w-4 h-4" />
             </Link>
           </Button>
           <Button size="lg" variant="outline" className="border-slate-200 hover:bg-slate-50 text-slate-700 px-8 h-12 text-lg rounded-full" asChild>
-             <Link href="https://open.kakao.com/o/your-link" target="_blank">
-               수업 문의하기
-             </Link>
+            <Link href="https://open.kakao.com/o/your-link" target="_blank">
+              수업 문의하기
+            </Link>
           </Button>
         </motion.div>
       </div>
