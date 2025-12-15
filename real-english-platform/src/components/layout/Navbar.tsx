@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, X, Rocket, LogOut, User as UserIcon } from "lucide-react";
+import { Menu, X, Rocket, LogOut, User as UserIcon, Settings } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { User } from "@supabase/supabase-js";
@@ -82,6 +82,13 @@ export default function Navbar({ user }: NavbarProps) {
                                     마이페이지
                                 </Link>
                             </Button>
+
+                            <Button asChild variant="ghost" size="sm" className="text-slate-500 hover:text-slate-900 px-2" title="내 정보 설정">
+                                <Link href="/settings">
+                                    <Settings className="w-4 h-4" />
+                                </Link>
+                            </Button>
+
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -132,6 +139,12 @@ export default function Navbar({ user }: NavbarProps) {
                             <Button asChild className="w-full bg-slate-900 text-white" onClick={() => setMobileMenuOpen(false)}>
                                 <Link href="/dashboard">
                                     마이페이지
+                                </Link>
+                            </Button>
+                            <Button asChild variant="outline" className="w-full text-slate-600 border-slate-200" onClick={() => setMobileMenuOpen(false)}>
+                                <Link href="/settings">
+                                    <Settings className="w-4 h-4 mr-2" />
+                                    내 정보 설정
                                 </Link>
                             </Button>
                             <Button
