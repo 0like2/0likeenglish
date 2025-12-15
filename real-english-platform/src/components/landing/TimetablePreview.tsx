@@ -7,24 +7,24 @@ import { Clock, User, Users } from "lucide-react";
 import { motion } from "framer-motion";
 
 // Mock Data Structure
-const timeSlots = ["09:00 - 12:00", "14:00 - 17:00", "19:00 - 22:00"];
+const timeSlots = ["09:00 - 12:00", "14:00 - 17:00", "18:00 - 21:00"];
 const days = ["평일 (화/목)", "토요일", "일요일"];
 
 const scheduleData = {
     "09:00 - 12:00": [
         { day: "평일 (화/목)", type: "empty" },
-        { day: "토요일", type: "active", title: "고3 수능 대비반", tag: "개인", status: "진행중" },
-        { day: "일요일", type: "recruiting", title: "중등 심화반", tag: "그룹", status: "모집중" },
+        { day: "토요일", type: "active", title: "고3 수능 대비 과외", tag: "개인", status: "진행중" },
+        { day: "일요일", type: "recruiting", title: "고3 수능 실전 대비반", tag: "일반반", status: "모집중" },
     ],
     "14:00 - 17:00": [
-        { day: "평일 (화/목)", type: "active", title: "고2 내신 집중반", tag: "그룹", status: "진행중" },
-        { day: "토요일", type: "empty" },
-        { day: "일요일", type: "closed", title: "고3 실전 모의고사", tag: "그룹", status: "마감" },
+        { day: "평일 (화/목)", type: "empty" },
+        { day: "토요일", type: "recruiting", title: "고2 수능 실전 대비반", tag: "일반반", status: "모집중" },
+        { day: "일요일", type: "active", title: "고2 내신 대비", tag: "개인", status: "진행중" },
     ],
-    "19:00 - 22:00": [
-        { day: "평일 (화/목)", type: "recruiting", title: "직장인 회화 기초", tag: "개인", status: "모집중" },
-        { day: "토요일", type: "active", title: "토익 900+ 반", tag: "그룹", status: "진행중" },
-        { day: "일요일", type: "empty" },
+    "18:00 - 21:00": [
+        { day: "평일 (화/목)", type: "recruiting", title: "고2,3 수능/내신 (화/목)", tag: "개인&그룹", status: "모집중" },
+        { day: "토요일", type: "recruiting", title: "고2,3 수능 대비 과외", tag: "개인&그룹", status: "모집중" },
+        { day: "일요일", type: "recruiting", title: "고3 수능 실전 대비반", tag: "개인&그룹", status: "모집중" },
     ]
 };
 
@@ -50,19 +50,32 @@ export default function TimetablePreview() {
             <div className="container px-4 md:px-6">
                 <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
                     <div className="space-y-4">
-                        <Badge variant="outline" className="border-blue-200 text-blue-600">Weekly Schedule</Badge>
+                        <Badge variant="outline" className="border-blue-200 text-blue-600">2026년 수업 시간표</Badge>
                         <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-slate-900">
-                            수업 시간표
+                            주간 타임테이블
                         </h2>
-                        <p className="text-slate-500">
-                            실시간으로 업데이트되는 수업 일정을 확인하세요.
+                        <p className="text-slate-500 text-lg">
+                            수능 영어는 0like, 이영락
+                            <span className="block text-sm mt-1 text-slate-400">수능 대비 / 내신 대비 과외</span>
                         </p>
                     </div>
-                    <div className="flex gap-2">
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-600"></div><span className="text-sm text-slate-600">진행중</span></div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-100 border border-blue-200"></div><span className="text-sm text-slate-600">모집중</span></div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-slate-100"></div><span className="text-sm text-slate-600">마감</span></div>
+                    <div className="flex flex-col items-end gap-3">
+                        <div className="flex gap-4 mb-2">
+                            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded border border-blue-200 bg-blue-50"></div><span className="text-sm font-medium">개인 (1:1 맞춤)</span></div>
+                            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded border border-blue-200 bg-blue-50"></div><span className="text-sm font-medium">개인&그룹</span></div>
+                            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded border border-blue-200 bg-blue-50"></div><span className="text-sm font-medium">일반반</span></div>
+                        </div>
+                        <div className="flex gap-3">
+                            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-600"></div><span className="text-sm text-slate-600">진행중</span></div>
+                            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-100 border border-blue-200"></div><span className="text-sm text-slate-600">모집중</span></div>
+                        </div>
                     </div>
+                </div>
+
+                {/* Announcement Banner */}
+                <div className="mb-8 p-4 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2 text-orange-800 text-sm md:text-base">
+                    <span className="font-bold">ⓘ 안내사항:</span>
+                    평일은 보강, 내신대비, 개인 과외 위주로 모집합니다.
                 </div>
 
                 {/* Scheduler Grid */}

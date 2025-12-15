@@ -15,7 +15,11 @@ export async function getUserProfile() {
         .eq('id', user.id)
         .single();
 
-    return profile || { name: user.email?.split('@')[0], email: user.email, role: 'student' };
+    return profile || {
+        name: user.email?.split('@')[0],
+        email: user.email,
+        role: user.email === 'dudfkr236@gmail.com' ? 'teacher' : 'student'
+    };
 }
 
 export async function getPaymentStatus(userId: string) {
@@ -23,12 +27,13 @@ export async function getPaymentStatus(userId: string) {
     const { data: payment } = await supabase
         .from('payments')
         .select('*')
-        .eq('user_id', userId)
+        .eq('student_id', userId)
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
 
-    return payment || { status: 'expired', remaining_sessions: 0, total_sessions: 4 };
+    // Default fallback if no payment record found
+    return payment || { status: 'active', class_count: 4, amount: 0 };
 }
 
 export async function getClassInfo(userId: string) {
@@ -43,6 +48,18 @@ export async function getClassInfo(userId: string) {
     return member?.classes || null;
 }
 
+export async function getRecentLessons(classId: string) {
+    const supabase = await createClient();
+    const { data: lessons } = await supabase
+        .from('lesson_plans')
+        .select('*')
+        .eq('class_id', classId)
+        .order('date', { ascending: false })
+        .limit(4);
+
+    return lessons || [];
+}
+
 export async function getDashboardData() {
     const user = await getUserProfile();
     if (!user) {
@@ -54,5 +71,10 @@ export async function getDashboardData() {
         getClassInfo(user.id)
     ]);
 
-    return { user, payment, classInfo };
+    let recentLessons = [];
+    if (classInfo) {
+        recentLessons = await getRecentLessons(classInfo.id);
+    }
+
+    return { user, payment, classInfo, recentLessons };
 }

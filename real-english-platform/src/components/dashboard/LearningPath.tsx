@@ -6,11 +6,14 @@ import { CheckCircle2, Circle, Lock, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-// Mock Data
+// Mock Data based on Notion
 const QUESTS = [
-    { id: "class-3", title: "Chapter 12. 수동태 정복", date: "12/16", status: "current", type: "Main Quest" },
-    { id: "class-1", title: "Chapter 13. 가정법의 이해", date: "12/18", status: "locked", type: "Main Quest" },
-    { id: "hw-prev", title: "Chapter 11. 관계사 복습", date: "12/14", status: "completed", type: "Completed" },
+    { id: "vocab-3x", title: "단어 3회독 (Wordmaster)", date: "매일", status: "current", type: "Daily Routine" },
+    { id: "type-solving", title: "유형별 문제 풀이 (빈칸/순서)", date: "주 3회", status: "current", type: "Weakness" },
+    { id: "keywording", title: "Keywording & Linking 연습", date: "수업 후", status: "current", type: "Review" },
+    { id: "mock-exam", title: "[매주] 평가원 모의고사 풀이", date: "주말", status: "locked", type: "Mock Exam" },
+    { id: "listening", title: "영어 듣기 숙제 (Dictation)", date: "화/목", status: "locked", type: "Listening" },
+    { id: "flow", title: "Flow (오리엔테이션 & 커리큘럼)", date: "완료", status: "completed", type: "Intro" },
 ];
 
 export default function LearningPath() {
@@ -18,7 +21,7 @@ export default function LearningPath() {
         <Card className="shadow-sm border-slate-100 col-span-1 md:col-span-2">
             <CardHeader>
                 <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    🗺️ 학습 퀘스트 (Learning Path)
+                    📝 이번 주 학습 퀘스트
                 </CardTitle>
             </CardHeader>
             <CardContent>
@@ -29,8 +32,8 @@ export default function LearningPath() {
                             className={cn(
                                 "flex items-center justify-between p-4 rounded-xl border transition-all",
                                 quest.status === 'current' ? "bg-white border-blue-200 shadow-md scale-[1.02]"
-                                    : quest.status === 'completed' ? "bg-slate-50 border-slate-100 opacity-70"
-                                        : "bg-slate-50 border-slate-100 opacity-50"
+                                    : quest.status === 'completed' ? "bg-green-50 border-green-100 opacity-80"
+                                        : "bg-slate-50 border-slate-100 opacity-60"
                             )}
                         >
                             <div className="flex items-center gap-4">
@@ -46,7 +49,7 @@ export default function LearningPath() {
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
-                                        <Badge variant="outline" className="text-xs font-normal">
+                                        <Badge variant="outline" className="text-xs font-normal bg-white/50">
                                             {quest.type}
                                         </Badge>
                                         <span className="text-xs text-slate-400">{quest.date}</span>
@@ -58,9 +61,9 @@ export default function LearningPath() {
                             </div>
 
                             {quest.status === 'current' && (
-                                <Link href={`/class/${quest.id}/2025-12-16`}>
-                                    <Badge className="bg-blue-600 hover:bg-blue-700 cursor-pointer pl-3 pr-2 py-1.5">
-                                        입장하기 <ArrowRight className="w-3 h-3 ml-1" />
+                                <Link href={`/blog/learning-method?topic=${quest.id}`}>
+                                    <Badge className="bg-blue-600 hover:bg-blue-700 cursor-pointer pl-3 pr-2 py-1.5 transition-colors">
+                                        학습법 보기 <ArrowRight className="w-3 h-3 ml-1" />
                                     </Badge>
                                 </Link>
                             )}

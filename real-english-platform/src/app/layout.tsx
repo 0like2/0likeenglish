@@ -16,15 +16,20 @@ export const metadata: Metadata = {
   keywords: ["영어학원", "영어과외", "수능영어", "내신영어", "리얼영어"],
 };
 
-export default function RootLayout({
+import { createClient } from "@/lib/supabase/server";
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <html lang="ko">
       <body className={cn(inter.className, "min-h-screen bg-background font-sans antialiased")}>
-        <Navbar />
+        <Navbar user={user} />
         {children}
         <Toaster />
       </body>
