@@ -62,7 +62,7 @@ export default function HeroSection() {
         >
           <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-10 h-12 text-lg rounded-full shadow-lg shadow-blue-600/20" asChild>
             <Link href="/auth/login">
-              로그인 <ArrowRight className="ml-2 w-4 h-4" />
+              로그인
             </Link>
           </Button>
           <Button size="lg" variant="outline" className="border-slate-200 hover:bg-slate-50 text-slate-700 px-8 h-12 text-lg rounded-full" asChild>
