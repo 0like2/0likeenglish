@@ -98,4 +98,4 @@ export default function HomeworkProgress({ quests = [] }: HomeworkProgressProps)
         </Card>
     );
 }
-```
+
