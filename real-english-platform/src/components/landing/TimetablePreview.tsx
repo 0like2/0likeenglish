@@ -48,27 +48,26 @@ export default function TimetablePreview() {
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-slate-50 rounded-full blur-3xl -z-10 translate-x-1/2 -translate-y-1/2" />
 
             <div className="container px-4 md:px-6">
-                <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-                    <div className="space-y-4">
-                        <Badge variant="outline" className="border-blue-200 text-blue-600">2026년 수업 시간표</Badge>
+                <div className="flex flex-col items-center text-center mb-16 mx-auto max-w-3xl">
+                    <div className="space-y-4 mb-8">
+                        <Badge variant="secondary" className="px-4 py-1.5 text-sm font-medium bg-blue-50 text-blue-600">
+                            Class Schedule
+                        </Badge>
                         <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-slate-900">
-                            주간 타임테이블
+                            나의 수업 시간표
                         </h2>
                         <p className="text-slate-500 text-lg">
-                            수능 영어는 0like, 이영락
-                            <span className="block text-sm mt-1 text-slate-400">수능 대비 / 내신 대비 과외</span>
+                            진행 중인 수업을 클릭하면 상세 페이지로 이동합니다.
                         </p>
                     </div>
-                    <div className="flex flex-col items-end gap-3">
-                        <div className="flex gap-4 mb-2">
-                            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded border border-blue-200 bg-blue-50"></div><span className="text-sm font-medium">개인 (1:1 맞춤)</span></div>
-                            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded border border-blue-200 bg-blue-50"></div><span className="text-sm font-medium">개인&그룹</span></div>
-                            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded border border-blue-200 bg-blue-50"></div><span className="text-sm font-medium">일반반</span></div>
-                        </div>
-                        <div className="flex gap-3">
-                            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-600"></div><span className="text-sm text-slate-600">진행중</span></div>
-                            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-100 border border-blue-200"></div><span className="text-sm text-slate-600">모집중</span></div>
-                        </div>
+
+                    <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div className="flex items-center gap-2"><div className="w-4 h-4 rounded border border-blue-200 bg-blue-50"></div><span className="text-sm font-medium text-slate-600">개인 (1:1 맞춤)</span></div>
+                        <div className="flex items-center gap-2"><div className="w-4 h-4 rounded border border-blue-200 bg-blue-50"></div><span className="text-sm font-medium text-slate-600">개인&그룹</span></div>
+                        <div className="flex items-center gap-2"><div className="w-4 h-4 rounded border border-blue-200 bg-blue-50"></div><span className="text-sm font-medium text-slate-600">일반반</span></div>
+                        <div className="w-px h-4 bg-slate-300 mx-2 hidden md:block"></div>
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-600"></div><span className="text-sm text-slate-600">진행중</span></div>
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-100 border border-blue-200"></div><span className="text-sm text-slate-600">모집중</span></div>
                     </div>
                 </div>
 
