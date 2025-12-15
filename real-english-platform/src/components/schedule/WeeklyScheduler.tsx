@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { SCHEDULE_DATA } from "@/lib/mockData";
@@ -34,7 +35,7 @@ export default function WeeklyScheduler() {
 
                 {/* Time Slots */}
                 {timeSlots.map((time, idx) => (
-                    <>
+                    <React.Fragment key={idx}>
                         {/* Time Label */}
                         <div key={`time-${idx}`} className="flex md:flex-col items-center justify-center p-4 bg-slate-50 rounded-xl font-medium text-slate-500 text-sm md:text-base">
                             <Clock className="w-4 h-4 md:mb-2 mr-2 md:mr-0 inline" />
@@ -103,7 +104,7 @@ export default function WeeklyScheduler() {
                                 </motion.div>
                             );
                         })}
-                    </>
+                    </React.Fragment>
                 ))}
             </div>
         </div>
