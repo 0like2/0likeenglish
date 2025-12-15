@@ -12,28 +12,17 @@ import { ko } from "date-fns/locale";
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-    const { user, payment, classInfo, recentLessons } = await getDashboardData();
-
-    // Format current date
+    const { user, payment, classInfo, recentLessons, quests } = await getDashboardData();
     const today = format(new Date(), "yyyy년 MM월 dd일 (EEE)", { locale: ko });
 
-    // Derive payment props
-    // We assume payment.class_count is the TOTAL assigned (e.g. 4)
-    // And used count is derived from actual lesson logs.
-    const totalSessions = payment?.class_count || 4;
-    const usedSessions = recentLessons.length;
-
-    // Status mapping
-    const payStatus = (payment?.status === 'active' || payment?.status === 'pending' || payment?.status === 'expired')
-        ? payment.status
-        : 'active'; // Default to active for demo if no payment record
-
+    // Status mapping & Dates
+    const payStatus = payment?.status === 'active' || payment?.status === 'pending' || payment?.status === 'expired'
+        ? payment.status : 'active';
     const nextPayDate = payment?.expiry_date ? format(new Date(payment.expiry_date), "yyyy-MM-dd") : "미정";
 
     return (
         <div className="min-h-screen bg-slate-50 py-8 px-4 md:px-6">
             <div className="max-w-6xl mx-auto space-y-8">
-
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
@@ -61,25 +50,22 @@ export default async function DashboardPage() {
                 {/* Top Stats Row */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <PaymentStatus
-                        currentCount={totalSessions}
-                        usedCount={usedSessions}
+                        currentCount={payment?.class_count || 4}
+                        usedCount={recentLessons.length}
                         status={payStatus}
                         nextPaymentDate={nextPayDate}
                         recentLessons={recentLessons}
                     />
                     <HomeworkProgress
-                        completed={0} // TODO: Calculate from Real Homeworks
-                        total={0} // TODO: Calculate from Real Homeworks
-                        streakDays={0}
+                        quests={quests || []}
                     />
                 </div>
 
                 {/* Main Content Row */}
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    <LearningPath />
+                    <LearningPath quests={quests || []} />
                     <MonthlyReport />
                 </div>
-
             </div>
         </div>
     );
