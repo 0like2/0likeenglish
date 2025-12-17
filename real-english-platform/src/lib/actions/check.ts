@@ -23,7 +23,7 @@ export async function toggleLessonCheck(lessonId: string, field: string) {
         'failed': 'none'
     };
 
-    const oldStatus = current ? current[field] : 'none';
+    const oldStatus = current ? (current as any)[field] : 'none';
     const newStatus = statusMap[oldStatus as keyof typeof statusMap] || 'done';
 
     // 2. Upsert
