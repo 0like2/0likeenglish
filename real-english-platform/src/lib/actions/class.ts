@@ -52,6 +52,7 @@ export async function createLesson(classId: string, formData: any) {
     }
     revalidatePath(`/class/${classId}`);
     revalidatePath(`/admin/classes`);
+    revalidatePath(`/admin/classes/${classId}`);
 }
 
 export async function deleteLesson(lessonId: string, classId: string) {

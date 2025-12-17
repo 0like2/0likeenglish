@@ -71,7 +71,7 @@ export default async function ClassDetailPage({ params }: PageProps) {
                                     <span>수강생 {studentCount}명</span>
                                 </div>
                                 <div className="col-span-2 text-slate-900 font-bold">
-                                    ₩{classData.price.toLocaleString()}
+                                    ₩{classData.price?.toLocaleString() || 0}
                                 </div>
                             </div>
                         </CardContent>
@@ -89,7 +89,7 @@ export default async function ClassDetailPage({ params }: PageProps) {
                                     <div key={log.id} className="border rounded-lg p-4 space-y-2 bg-slate-50/50">
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <div className="font-bold text-slate-900">{log.title}</div>
+                                                <div className="font-bold text-slate-900">{log.title || 'Untitled'}</div>
                                                 <div className="text-sm text-slate-500">{log.date}</div>
                                             </div>
                                             <Badge variant={log.status === 'upcoming' ? 'secondary' : 'default'}>
@@ -105,6 +105,7 @@ export default async function ClassDetailPage({ params }: PageProps) {
                                             {log.vocab_hw && <div><span className="font-semibold text-red-500">단어:</span> {log.vocab_hw}</div>}
                                             {log.listening_hw && <div><span className="font-semibold text-purple-500">듣기:</span> {log.listening_hw}</div>}
                                             {log.grammar_hw && <div><span className="font-semibold text-indigo-500">문법:</span> {log.grammar_hw}</div>}
+                                            {log.other_hw && <div><span className="font-semibold text-slate-500">기타:</span> {log.other_hw}</div>}
                                         </div>
                                     </div>
                                 ))
