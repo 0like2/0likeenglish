@@ -7,6 +7,8 @@ import { Users, Clock } from "lucide-react";
 import Link from "next/link";
 import { getClassesData } from "@/lib/data/admin";
 
+import DeleteClassButton from "@/components/admin/DeleteClassButton";
+
 export const dynamic = 'force-dynamic';
 
 export default async function ClassManagementPage() {
