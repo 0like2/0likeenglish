@@ -208,3 +208,41 @@ export async function createBlogPost(data: { title: string, content: string, cat
     // We don't redirect here, let client handle it or redirect?
     // Client side usually handles redirect after success
 }
+
+export async function deleteClass(classId: string) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("Unauthorized");
+
+    // 1. Delete Dependencies (Manual Cascade for safety)
+
+    // Quests
+    const { data: quests } = await supabase.from('class_quests').select('id').eq('class_id', classId);
+    if (quests && quests.length > 0) {
+        const questIds = quests.map(q => q.id);
+        // Clean up quest related tables if they exist (submissions, progress)
+        await supabase.from('quest_submissions').delete().in('quest_id', questIds);
+        await supabase.from('student_quest_progress').delete().in('quest_id', questIds);
+
+        await supabase.from('class_quests').delete().eq('class_id', classId);
+    }
+
+    // Lessons
+    const { data: lessons } = await supabase.from('lesson_plans').select('id').eq('class_id', classId);
+    if (lessons && lessons.length > 0) {
+        const lessonIds = lessons.map(l => l.id);
+        await supabase.from('student_lesson_checks').delete().in('lesson_id', lessonIds);
+        await supabase.from('lesson_plans').delete().eq('class_id', classId);
+    }
+
+    // Members
+    await supabase.from('class_members').delete().eq('class_id', classId);
+
+    // 2. Delete Class
+    const { error } = await supabase.from('classes').delete().eq('id', classId);
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath('/admin/classes');
+}
