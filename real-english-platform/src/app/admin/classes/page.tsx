@@ -29,7 +29,7 @@ export default async function ClassManagementPage() {
                     </div>
                 )}
                 {classes.map((cls) => (
-                    <Card key={cls.id} className="flex flex-col">
+                    <Card key={cls.id} className="flex flex-col group hover:shadow-lg transition-shadow bg-white">
                         <CardHeader>
                             <div className="flex justify-between items-start">
                                 <Badge variant="outline" className="mb-2 bg-blue-50 text-blue-700 border-blue-100">수강중</Badge>
@@ -38,22 +38,29 @@ export default async function ClassManagementPage() {
                                     <EditClassDialog classData={cls} />
                                 </div>
                             </div>
-                            <CardTitle className="text-xl">{cls.name}</CardTitle>
-                            <CardDescription className="flex items-center gap-1 mt-1">
-                                <Clock className="w-3 h-3" /> {cls.schedule}
-                            </CardDescription>
+                            <Link href={`/admin/classes/${cls.id}`} className="block">
+                                <CardTitle className="text-xl group-hover:text-blue-600 transition-colors">{cls.name}</CardTitle>
+                                <CardDescription className="flex items-center gap-1 mt-1">
+                                    <Clock className="w-3 h-3" /> {cls.schedule}
+                                </CardDescription>
+                            </Link>
                         </CardHeader>
                         <CardContent className="flex-1">
-                            <div className="flex items-center gap-2 text-sm text-slate-600">
-                                <Users className="w-4 h-4" />
-                                <div className="flex items-center gap-2">
-                                    <span>수강생 {cls.students}명</span>
-                                    {/* Student Assignment can be done via Students tab, but maybe a quick link here? */}
+                            <Link href={`/admin/classes/${cls.id}`} className="block">
+                                <div className="flex items-center gap-2 text-sm text-slate-600">
+                                    <Users className="w-4 h-4" />
+                                    <div className="flex items-center gap-2">
+                                        <span>수강생 {cls.students}명</span>
+                                    </div>
                                 </div>
-                            </div>
+                            </Link>
                         </CardContent>
                         <CardFooter className="pt-4 border-t bg-slate-50/50 flex justify-between gap-2">
-                            <ManageLessonsDialog classId={cls.id} className={cls.name} />
+                            <Link href={`/admin/classes/${cls.id}`} className="w-full">
+                                <Button variant="outline" size="sm" className="w-full gap-2 text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100">
+                                    관리 및 로그 등록
+                                </Button>
+                            </Link>
                         </CardFooter>
                     </Card>
                 ))}

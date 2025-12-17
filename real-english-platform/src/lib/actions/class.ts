@@ -6,15 +6,31 @@ import { revalidatePath } from "next/cache";
 export async function createLesson(classId: string, formData: any) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
+
+    console.log("Debug: createLesson called by:", user?.email);
+
     if (!user) throw new Error("Unauthorized");
 
     // Check if user is teacher
     const { data: userData } = await supabase.from('users').select('role').eq('id', user.id).single();
+
+    console.log("Debug: User Role Data:", userData);
+
     if (userData?.role !== 'teacher' && user.email !== 'dudfkr236@gmail.com') { // Safety check
+        console.error("Debug: Permission Denied. Role:", userData?.role, "Email:", user.email);
         throw new Error("Only teachers can create lessons");
     }
 
-    const { error } = await supabase
+    // Use Service Role to bypass RLS for admin inserts if needed
+    // standard 'supabase' client is user-scoped and subject to RLS.
+    // We create a one-off admin client for the write operation.
+    const { createClient: createSupabaseClient } = require('@supabase/supabase-js');
+    const adminClient = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { error } = await adminClient
         .from('lesson_plans')
         .insert({
             class_id: classId,
@@ -28,7 +44,10 @@ export async function createLesson(classId: string, formData: any) {
             status: 'upcoming'
         });
 
-    if (error) throw new Error(error.message);
+    if (error) {
+        console.error("Debug: Database Insert Error:", error);
+        throw new Error(error.message);
+    }
     revalidatePath(`/class/${classId}`);
     revalidatePath(`/admin/classes`);
 }
