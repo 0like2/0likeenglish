@@ -36,8 +36,9 @@ export async function createClass(formData: {
     start_time?: string,
     end_time?: string,
     quest_vocab_on?: boolean,
-    quest_listening_on?: boolean,
-    quest_frequency?: number
+    quest_listening_on?: boolean;
+    quest_mock_on?: boolean;
+    quest_frequency?: number;
 }) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -56,6 +57,7 @@ export async function createClass(formData: {
             end_time: formData.end_time,
             quest_vocab_on: formData.quest_vocab_on ?? true,
             quest_listening_on: formData.quest_listening_on ?? true,
+            quest_mock_on: formData.quest_mock_on ?? false,
             quest_frequency: formData.quest_frequency ?? 3
         })
         .select()
@@ -81,6 +83,15 @@ export async function createClass(formData: {
             title: '매일 듣기 평가 인증',
             description: '듣기 평가 수행 결과를 사진 찍어 올려주세요.',
             weekly_frequency: formData.quest_frequency ?? 3
+        });
+    }
+    if (formData.quest_mock_on) {
+        questsToInsert.push({
+            class_id: newClass.id,
+            type: 'MockExam',
+            title: '주간 모의고사 풀이 인증',
+            description: '모의고사 풀이 및 오답노트 사진을 올려주세요.',
+            weekly_frequency: 1 // Mock exams are usually once a week or separate freq? User said "Frequency based". I'll default to 1 for Mock.
         });
     }
 

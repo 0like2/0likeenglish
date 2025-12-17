@@ -36,6 +36,7 @@ export default function CreateClassForm() {
         price: "",
         quest_vocab_on: true,
         quest_listening_on: true,
+        quest_mock_on: false,
         quest_frequency: 3
     });
 
@@ -58,13 +59,14 @@ export default function CreateClassForm() {
                 end_time: endTime,
                 quest_vocab_on: formData.quest_vocab_on,
                 quest_listening_on: formData.quest_listening_on,
+                quest_mock_on: formData.quest_mock_on,
                 quest_frequency: Number(formData.quest_frequency)
             });
             toast.success(`새로운 수업 '${formData.name}'이(가) 개설되었습니다!`);
             setOpen(false);
             setFormData({
                 name: "", day: "", timeSlot: "", price: "",
-                quest_vocab_on: true, quest_listening_on: true, quest_frequency: 3
+                quest_vocab_on: true, quest_listening_on: true, quest_mock_on: false, quest_frequency: 3
             });
         } catch (e) {
             console.error(e);
@@ -169,6 +171,16 @@ export default function CreateClassForm() {
                                     />
                                     <label htmlFor="listening" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                         듣기평가
+                                    </label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="mock"
+                                        checked={formData.quest_mock_on}
+                                        onCheckedChange={(c) => setFormData({ ...formData, quest_mock_on: c as boolean })}
+                                    />
+                                    <label htmlFor="mock" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                        모의고사
                                     </label>
                                 </div>
                             </div>

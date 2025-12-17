@@ -1,11 +1,13 @@
+```typescript
 import { getClassInfo, getQuestProgress, getUserProfile } from "@/lib/data/dashboard";
-import { getClassLessons } from "@/lib/data/class";
+import { getClassLessons, getStudentLessonChecks } from "@/lib/data/class";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, Circle, ArrowLeft, Calendar, FileText, BookOpen, Headphones, PenTool } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import QuestSubmission from "@/components/class/QuestSubmission";
+import HomeworkCheckItem from "@/components/class/HomeworkCheckItem";
 import { redirect } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +24,7 @@ export default async function ClassHomePage({ params }: PageProps) {
     const quests = await getQuestProgress(params.id, user.id);
     const classInfo = await getClassInfo(user.id);
     const lessons = await getClassLessons(params.id);
+    const checks = await getStudentLessonChecks(user.id, params.id);
 
     // Calculate overall stats
     const totalGoal = quests.reduce((acc, q) => acc + (q.weekly_frequency || 1), 0);
@@ -86,7 +89,7 @@ export default async function ClassHomePage({ params }: PageProps) {
                                             <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden max-w-[200px]">
                                                 <div
                                                     className={cn("h-full transition-all", isDone ? "bg-green-500" : "bg-blue-500")}
-                                                    style={{ width: `${Math.min((current / target) * 100, 100)}%` }}
+                                                    style={{ width: `${ Math.min((current / target) * 100, 100) }% ` }}
                                                 />
                                             </div>
                                             <p className="text-xs text-slate-400">
@@ -121,7 +124,9 @@ export default async function ClassHomePage({ params }: PageProps) {
                                 <p className="text-slate-400">아직 등록된 수업 로그가 없습니다.</p>
                             </div>
                         ) : (
-                            lessons.map((lesson) => (
+                            lessons.map((lesson) => {
+                                const check = checks.find(c => c.lesson_id === lesson.id);
+                                return (
                                 <Card key={lesson.id} className="overflow-hidden border-l-4 border-l-blue-500">
                                     <div className="bg-slate-50 px-4 py-3 border-b flex justify-between items-center">
                                         <div className="flex items-center gap-3">
@@ -143,48 +148,57 @@ export default async function ClassHomePage({ params }: PageProps) {
                                             </div>
                                         )}
 
-                                        {/* Homework Grid */}
+                                        {/* Homework Grid with Interaction */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             {lesson.vocab_hw && (
-                                                <div className="flex items-start gap-3">
-                                                    <BookOpen className="w-5 h-5 text-red-500 mt-0.5" />
-                                                    <div>
-                                                        <span className="text-xs font-bold text-red-500 block mb-1">단어 (Vocabulary)</span>
-                                                        <p className="text-sm text-slate-700">{lesson.vocab_hw}</p>
-                                                    </div>
-                                                </div>
+                                                <HomeworkCheckItem
+                                                    lessonId={lesson.id}
+                                                    field="vocab_status"
+                                                    label="단어 (Vocabulary)"
+                                                    content={lesson.vocab_hw}
+                                                    status={check?.vocab_status || 'none'}
+                                                    iconColor="text-red-500"
+                                                    Icon={BookOpen}
+                                                />
                                             )}
                                             {lesson.listening_hw && (
-                                                <div className="flex items-start gap-3">
-                                                    <Headphones className="w-5 h-5 text-purple-500 mt-0.5" />
-                                                    <div>
-                                                        <span className="text-xs font-bold text-purple-500 block mb-1">듣기 (Listening)</span>
-                                                        <p className="text-sm text-slate-700">{lesson.listening_hw}</p>
-                                                    </div>
-                                                </div>
+                                                <HomeworkCheckItem
+                                                    lessonId={lesson.id}
+                                                    field="listening_status"
+                                                    label="듣기 (Listening)"
+                                                    content={lesson.listening_hw}
+                                                    status={check?.listening_status || 'none'}
+                                                    iconColor="text-purple-500"
+                                                    Icon={Headphones}
+                                                />
                                             )}
                                             {lesson.grammar_hw && (
-                                                <div className="flex items-start gap-3">
-                                                    <PenTool className="w-5 h-5 text-indigo-500 mt-0.5" />
-                                                    <div>
-                                                        <span className="text-xs font-bold text-indigo-500 block mb-1">문법 (Grammar)</span>
-                                                        <p className="text-sm text-slate-700">{lesson.grammar_hw}</p>
-                                                    </div>
-                                                </div>
+                                                <HomeworkCheckItem
+                                                    lessonId={lesson.id}
+                                                    field="grammar_status"
+                                                    label="문법 (Grammar)"
+                                                    content={lesson.grammar_hw}
+                                                    status={check?.grammar_status || 'none'}
+                                                    iconColor="text-indigo-500"
+                                                    Icon={PenTool}
+                                                />
                                             )}
                                             {lesson.other_hw && (
-                                                <div className="flex items-start gap-3">
-                                                    <CheckCircle2 className="w-5 h-5 text-slate-500 mt-0.5" />
-                                                    <div>
-                                                        <span className="text-xs font-bold text-slate-500 block mb-1">그 외 (Other)</span>
-                                                        <p className="text-sm text-slate-700">{lesson.other_hw}</p>
-                                                    </div>
-                                                </div>
+                                                <HomeworkCheckItem
+                                                    lessonId={lesson.id}
+                                                    field="other_status"
+                                                    label="그 외 (Other)"
+                                                    content={lesson.other_hw}
+                                                    status={check?.other_status || 'none'}
+                                                    iconColor="text-slate-500"
+                                                    Icon={CheckCircle2}
+                                                />
                                             )}
                                         </div>
                                     </div>
                                 </Card>
-                            ))
+                              );
+                            })
                         )}
                     </div>
                 </section>
