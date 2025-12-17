@@ -9,9 +9,18 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 const timeSlots = ["09:00 - 12:00", "14:00 - 17:00", "19:00 - 22:00"];
+// ...
 const days = ["화요일", "목요일", "토요일", "일요일"];
 
-// ...
+const getStatusStyles = (status: string) => {
+    switch (status) {
+        case "진행중": return "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200";
+        case "모집중": return "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100";
+        case "마감": return "bg-slate-100 text-slate-500 border-slate-200";
+        default: return "bg-white border-dashed border-slate-300";
+    }
+};
+
 export default function WeeklyScheduler({ classes = [] }: { classes?: any[] }) {
     // Transform DB classes to Grid Data
     const scheduleData: Record<string, any[]> = useMemo(() => {
