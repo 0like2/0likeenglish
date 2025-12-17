@@ -34,7 +34,8 @@ export async function updateProfile(prevState: any, formData: FormData) {
     });
 
     revalidatePath('/dashboard');
-    revalidatePath('/settings'); // We will make this page
+    revalidatePath('/settings');
+    revalidatePath('/', 'layout'); // Update global layout (navbar user name)
 
     return { success: true, message: "프로필이 수정되었습니다." };
 }

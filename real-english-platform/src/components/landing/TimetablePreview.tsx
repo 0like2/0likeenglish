@@ -8,17 +8,18 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 
 // Mock Data Structure
+// Mock Data Structure
 const timeSlots = ["09:00 - 12:00", "14:00 - 17:00", "19:00 - 22:00"];
-const days = ["평일 (화/목)", "토요일", "일요일"];
+const days = ["화요일", "목요일", "토요일", "일요일"];
 
 export default function TimetablePreview({ classes = [] }: { classes?: any[] }) {
     // Transform DB classes to Grid Data
     const scheduleData: Record<string, any[]> = React.useMemo(() => {
         // Initialize empty structure
         const data: Record<string, any[]> = {
-            "09:00 - 12:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }],
-            "14:00 - 17:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }],
-            "19:00 - 22:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }]
+            "09:00 - 12:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }, { type: "empty" }],
+            "14:00 - 17:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }, { type: "empty" }],
+            "19:00 - 22:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }, { type: "empty" }]
         };
 
         classes.forEach((cls) => {
@@ -35,9 +36,10 @@ export default function TimetablePreview({ classes = [] }: { classes?: any[] }) 
             // Determine Day Index (Column)
             let dayIndex = -1;
             const dayStr = cls.day_of_week || cls.schedule;
-            if (dayStr?.includes("평일") || dayStr?.includes("화") || dayStr?.includes("목")) dayIndex = 0;
-            else if (dayStr?.includes("토")) dayIndex = 1;
-            else if (dayStr?.includes("일")) dayIndex = 2;
+            if (dayStr?.includes("화")) dayIndex = 0;
+            else if (dayStr?.includes("목")) dayIndex = 1;
+            else if (dayStr?.includes("토")) dayIndex = 2;
+            else if (dayStr?.includes("일")) dayIndex = 3;
 
             if (dayIndex === -1) return;
 
@@ -103,7 +105,7 @@ export default function TimetablePreview({ classes = [] }: { classes?: any[] }) 
                 </div>
 
                 {/* Scheduler Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                     {/* Header Row (Desktop) */}
                     <div className="hidden md:flex items-center justify-center font-bold text-slate-400 bg-slate-50 rounded-xl p-4">TIME</div>
                     {days.map((day, i) => (
