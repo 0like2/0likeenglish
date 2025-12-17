@@ -25,13 +25,18 @@ import { PlusCircle } from "lucide-react";
 
 import { createClass } from "@/lib/actions/admin";
 
+import { Checkbox } from "@/components/ui/checkbox";
+
 export default function CreateClassForm() {
     const [open, setOpen] = useState(false);
     const [formData, setFormData] = useState({
         name: "",
         day: "",
         timeSlot: "",
-        price: ""
+        price: "",
+        quest_vocab_on: true,
+        quest_listening_on: true,
+        quest_frequency: 3
     });
 
     const handleSubmit = async () => {
@@ -50,11 +55,17 @@ export default function CreateClassForm() {
                 price: Number(formData.price) || 0,
                 day_of_week: formData.day,
                 start_time: startTime,
-                end_time: endTime
+                end_time: endTime,
+                quest_vocab_on: formData.quest_vocab_on,
+                quest_listening_on: formData.quest_listening_on,
+                quest_frequency: Number(formData.quest_frequency)
             });
             toast.success(`새로운 수업 '${formData.name}'이(가) 개설되었습니다!`);
             setOpen(false);
-            setFormData({ name: "", day: "", timeSlot: "", price: "" });
+            setFormData({
+                name: "", day: "", timeSlot: "", price: "",
+                quest_vocab_on: true, quest_listening_on: true, quest_frequency: 3
+            });
         } catch (e) {
             console.error(e);
             toast.error("수업 생성 중 오류가 발생했습니다. (권한을 확인해주세요)");
@@ -72,7 +83,7 @@ export default function CreateClassForm() {
                 <DialogHeader>
                     <DialogTitle>새 수업 개설</DialogTitle>
                     <DialogDescription>
-                        시간표 시스템에 등록될 수업 정보를 입력하세요.
+                        시간표 및 데일리 숙제 설정을 등록합니다.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-6 py-4">
@@ -134,6 +145,51 @@ export default function CreateClassForm() {
                             className="col-span-3"
                         />
                     </div>
+
+                    <div className="border-t pt-4 mt-2">
+                        <h4 className="font-semibold text-sm text-slate-900 mb-4">숙제 설정 (Quest)</h4>
+                        <div className="grid grid-cols-4 items-center gap-4 mb-4">
+                            <Label className="text-right font-medium">필수 과목</Label>
+                            <div className="col-span-3 flex gap-4">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="vocab"
+                                        checked={formData.quest_vocab_on}
+                                        onCheckedChange={(c) => setFormData({ ...formData, quest_vocab_on: c as boolean })}
+                                    />
+                                    <label htmlFor="vocab" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                        영단어
+                                    </label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="listening"
+                                        checked={formData.quest_listening_on}
+                                        onCheckedChange={(c) => setFormData({ ...formData, quest_listening_on: c as boolean })}
+                                    />
+                                    <label htmlFor="listening" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                        듣기평가
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="freq" className="text-right font-medium">주간 횟수</Label>
+                            <div className="col-span-3 flex items-center gap-2">
+                                <Input
+                                    id="freq"
+                                    type="number"
+                                    max={7}
+                                    min={1}
+                                    value={formData.quest_frequency}
+                                    onChange={e => setFormData({ ...formData, quest_frequency: parseInt(e.target.value) })}
+                                    className="w-24"
+                                />
+                                <span className="text-sm text-slate-500">회 / 주</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
                 <DialogFooter>
                     <Button type="submit" onClick={handleSubmit} className="w-full bg-slate-900">개설하기</Button>

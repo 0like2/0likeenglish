@@ -34,7 +34,10 @@ export async function createClass(formData: {
     price: number,
     day_of_week?: string,
     start_time?: string,
-    end_time?: string
+    end_time?: string,
+    quest_vocab_on?: boolean,
+    quest_listening_on?: boolean,
+    quest_frequency?: number
 }) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -50,7 +53,10 @@ export async function createClass(formData: {
             price: formData.price,
             day_of_week: formData.day_of_week,
             start_time: formData.start_time,
-            end_time: formData.end_time
+            end_time: formData.end_time,
+            quest_vocab_on: formData.quest_vocab_on ?? true,
+            quest_listening_on: formData.quest_listening_on ?? true,
+            quest_frequency: formData.quest_frequency ?? 3
         });
 
     if (error) throw new Error(error.message);
