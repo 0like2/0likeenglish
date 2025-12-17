@@ -3,6 +3,7 @@ import ManageLessonsDialog from "@/components/admin/ManageLessonsDialog";
 import EditClassDialog from "@/components/admin/EditClassDialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Users, Clock } from "lucide-react";
 import Link from "next/link";
 import { getClassesData } from "@/lib/data/admin";
