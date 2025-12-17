@@ -57,7 +57,7 @@ export default function WeeklyScheduler({ classes = [] }: { classes?: any[] }) {
                 type: "class",
                 title: cls.name,
                 tag: cls.name.includes("개인") || cls.name.includes("1:1") ? "개인" : "그룹",
-                status: "모집중",
+                status: cls.status || "모집중",
                 date: cls.schedule
             };
         });
