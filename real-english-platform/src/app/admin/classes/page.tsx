@@ -1,5 +1,6 @@
 import CreateClassForm from "@/components/admin/CreateClassForm";
 import ManageLessonsDialog from "@/components/admin/ManageLessonsDialog";
+import EditClassDialog from "@/components/admin/EditClassDialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Clock } from "lucide-react";
@@ -32,7 +33,10 @@ export default async function ClassManagementPage() {
                         <CardHeader>
                             <div className="flex justify-between items-start">
                                 <Badge variant="outline" className="mb-2 bg-blue-50 text-blue-700 border-blue-100">수강중</Badge>
-                                <span className="text-sm font-bold text-slate-900">₩{cls.price}</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-slate-900">₩{cls.price.toLocaleString()}</span>
+                                    <EditClassDialog classData={cls} />
+                                </div>
                             </div>
                             <CardTitle className="text-xl">{cls.name}</CardTitle>
                             <CardDescription className="flex items-center gap-1 mt-1">
@@ -42,7 +46,10 @@ export default async function ClassManagementPage() {
                         <CardContent className="flex-1">
                             <div className="flex items-center gap-2 text-sm text-slate-600">
                                 <Users className="w-4 h-4" />
-                                수강생 {cls.students}명
+                                <div className="flex items-center gap-2">
+                                    <span>수강생 {cls.students}명</span>
+                                    {/* Student Assignment can be done via Students tab, but maybe a quick link here? */}
+                                </div>
                             </div>
                         </CardContent>
                         <CardFooter className="pt-4 border-t bg-slate-50/50 flex justify-between gap-2">

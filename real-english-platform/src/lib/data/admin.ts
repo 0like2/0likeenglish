@@ -54,8 +54,15 @@ export async function getClassesData() {
         id: c.id,
         name: c.name,
         schedule: c.schedule,
-        price: c.price.toLocaleString(),
-        students: c.class_members?.[0]?.count || 0
+        day_of_week: c.day_of_week,
+        start_time: c.start_time,
+        end_time: c.end_time,
+        price: c.price,
+        students: c.class_members?.[0]?.count || 0,
+        quest_vocab_on: c.quest_vocab_on,
+        quest_listening_on: c.quest_listening_on,
+        quest_mock_on: c.quest_mock_on,
+        quest_frequency: c.quest_frequency
     })) || [];
 }
 

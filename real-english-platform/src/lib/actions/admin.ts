@@ -103,6 +103,90 @@ export async function createClass(formData: {
     revalidatePath('/admin/classes');
 }
 
+
+export async function updateClass(classId: string, formData: {
+    name: string,
+    schedule: string,
+    price: number,
+    day_of_week?: string,
+    start_time?: string,
+    end_time?: string,
+    quest_vocab_on?: boolean,
+    quest_listening_on?: boolean;
+    quest_mock_on?: boolean;
+    quest_frequency?: number;
+}) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("Unauthorized");
+
+    // 1. Update Class Details
+    const { error: classError } = await supabase
+        .from('classes')
+        .update({
+            name: formData.name,
+            schedule: formData.schedule,
+            price: formData.price,
+            day_of_week: formData.day_of_week,
+            start_time: formData.start_time,
+            end_time: formData.end_time,
+            quest_vocab_on: formData.quest_vocab_on ?? true,
+            quest_listening_on: formData.quest_listening_on ?? true,
+            quest_mock_on: formData.quest_mock_on ?? false,
+            quest_frequency: formData.quest_frequency ?? 3
+        })
+        .eq('id', classId);
+
+    if (classError) throw new Error(classError.message);
+
+    // 2. Sync Quests
+    const syncQuest = async (type: string, title: string, desc: string, isOn: boolean, freq: number) => {
+        // Check existing
+        const { data: existing } = await supabase
+            .from('class_quests')
+            .select('*')
+            .eq('class_id', classId)
+            .eq('type', type)
+            .single();
+
+        if (isOn) {
+            if (existing) {
+                // Update and Activate
+                await supabase.from('class_quests').update({
+                    is_active: true,
+                    weekly_frequency: freq,
+                    title: title,
+                    description: desc
+                }).eq('id', existing.id);
+            } else {
+                // Create
+                await supabase.from('class_quests').insert({
+                    class_id: classId,
+                    type: type,
+                    title: title,
+                    description: desc,
+                    weekly_frequency: freq,
+                    is_active: true
+                });
+            }
+        } else {
+            if (existing) {
+                // Deactivate
+                await supabase.from('class_quests').update({
+                    is_active: false
+                }).eq('id', existing.id);
+            }
+        }
+    };
+
+    await syncQuest('Vocabulary', '매일 영단어 암기 인증', '오늘 외운 단어를 사진 찍어 올려주세요.', formData.quest_vocab_on ?? true, formData.quest_frequency ?? 3);
+    await syncQuest('Listening', '매일 듣기 평가 인증', '듣기 평가 수행 결과를 사진 찍어 올려주세요.', formData.quest_listening_on ?? true, formData.quest_frequency ?? 3);
+    await syncQuest('MockExam', '주간 모의고사 풀이 인증', '모의고사 풀이 및 오답노트 사진을 올려주세요.', formData.quest_mock_on ?? false, 1);
+
+    revalidatePath('/admin/classes');
+}
+
 export async function createBlogPost(data: { title: string, content: string, category: string, is_published: boolean }) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

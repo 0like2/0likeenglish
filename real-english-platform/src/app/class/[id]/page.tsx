@@ -1,6 +1,6 @@
 
-import { getClassInfo, getQuestProgress, getUserProfile } from "@/lib/data/dashboard";
-import { getClassLessons, getStudentLessonChecks } from "@/lib/data/class";
+import { getQuestProgress, getUserProfile } from "@/lib/data/dashboard";
+import { getClassLessons, getStudentLessonChecks, getClassDetails } from "@/lib/data/class";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, Circle, ArrowLeft, Calendar, FileText, BookOpen, Headphones, PenTool } from "lucide-react";
@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import QuestSubmission from "@/components/class/QuestSubmission";
 import HomeworkCheckItem from "@/components/class/HomeworkCheckItem";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 interface PageProps {
@@ -21,8 +21,10 @@ export default async function ClassHomePage({ params }: PageProps) {
     const user = await getUserProfile();
     if (!user) redirect('/auth/login');
 
+    const classInfo = await getClassDetails(params.id);
+    if (!classInfo) return <div className="p-8 text-center font-bold text-xl">수업 정보를 찾을 수 없습니다.<br /><Link href="/schedule"><Button className="mt-4">시간표로 돌아가기</Button></Link></div>;
+
     const quests = await getQuestProgress(params.id, user.id);
-    const classInfo = await getClassInfo(user.id);
     const lessons = await getClassLessons(params.id);
     const checks = await getStudentLessonChecks(user.id, params.id);
 
