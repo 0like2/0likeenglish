@@ -1,4 +1,4 @@
-```typescript
+
 import { getClassInfo, getQuestProgress, getUserProfile } from "@/lib/data/dashboard";
 import { getClassLessons, getStudentLessonChecks } from "@/lib/data/class";
 import { Badge } from "@/components/ui/badge";
@@ -89,7 +89,7 @@ export default async function ClassHomePage({ params }: PageProps) {
                                             <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden max-w-[200px]">
                                                 <div
                                                     className={cn("h-full transition-all", isDone ? "bg-green-500" : "bg-blue-500")}
-                                                    style={{ width: `${ Math.min((current / target) * 100, 100) }% ` }}
+                                                    style={{ width: `${Math.min((current / target) * 100, 100)}% ` }}
                                                 />
                                             </div>
                                             <p className="text-xs text-slate-400">
@@ -127,77 +127,77 @@ export default async function ClassHomePage({ params }: PageProps) {
                             lessons.map((lesson) => {
                                 const check = checks.find(c => c.lesson_id === lesson.id);
                                 return (
-                                <Card key={lesson.id} className="overflow-hidden border-l-4 border-l-blue-500">
-                                    <div className="bg-slate-50 px-4 py-3 border-b flex justify-between items-center">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex items-center gap-1 text-slate-500 text-sm font-medium">
-                                                <Calendar className="w-4 h-4" />
-                                                {lesson.date}
+                                    <Card key={lesson.id} className="overflow-hidden border-l-4 border-l-blue-500">
+                                        <div className="bg-slate-50 px-4 py-3 border-b flex justify-between items-center">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-1 text-slate-500 text-sm font-medium">
+                                                    <Calendar className="w-4 h-4" />
+                                                    {lesson.date}
+                                                </div>
+                                                <h3 className="font-bold text-slate-800">{lesson.title || "수업 내용"}</h3>
                                             </div>
-                                            <h3 className="font-bold text-slate-800">{lesson.title || "수업 내용"}</h3>
+                                            <Badge variant={lesson.status === 'completed' ? "secondary" : "default"} className={lesson.status === 'completed' ? "bg-slate-200 text-slate-600" : "bg-blue-600"}>
+                                                {lesson.status === 'completed' ? '완료됨' : '진행중'}
+                                            </Badge>
                                         </div>
-                                        <Badge variant={lesson.status === 'completed' ? "secondary" : "default"} className={lesson.status === 'completed' ? "bg-slate-200 text-slate-600" : "bg-blue-600"}>
-                                            {lesson.status === 'completed' ? '완료됨' : '진행중'}
-                                        </Badge>
-                                    </div>
-                                    <div className="p-4 sm:p-6 space-y-4">
-                                        {/* Main Content */}
-                                        {lesson.content && (
-                                            <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-700 whitespace-pre-wrap">
-                                                {lesson.content}
-                                            </div>
-                                        )}
+                                        <div className="p-4 sm:p-6 space-y-4">
+                                            {/* Main Content */}
+                                            {lesson.content && (
+                                                <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-700 whitespace-pre-wrap">
+                                                    {lesson.content}
+                                                </div>
+                                            )}
 
-                                        {/* Homework Grid with Interaction */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            {lesson.vocab_hw && (
-                                                <HomeworkCheckItem
-                                                    lessonId={lesson.id}
-                                                    field="vocab_status"
-                                                    label="단어 (Vocabulary)"
-                                                    content={lesson.vocab_hw}
-                                                    status={check?.vocab_status || 'none'}
-                                                    iconColor="text-red-500"
-                                                    Icon={BookOpen}
-                                                />
-                                            )}
-                                            {lesson.listening_hw && (
-                                                <HomeworkCheckItem
-                                                    lessonId={lesson.id}
-                                                    field="listening_status"
-                                                    label="듣기 (Listening)"
-                                                    content={lesson.listening_hw}
-                                                    status={check?.listening_status || 'none'}
-                                                    iconColor="text-purple-500"
-                                                    Icon={Headphones}
-                                                />
-                                            )}
-                                            {lesson.grammar_hw && (
-                                                <HomeworkCheckItem
-                                                    lessonId={lesson.id}
-                                                    field="grammar_status"
-                                                    label="문법 (Grammar)"
-                                                    content={lesson.grammar_hw}
-                                                    status={check?.grammar_status || 'none'}
-                                                    iconColor="text-indigo-500"
-                                                    Icon={PenTool}
-                                                />
-                                            )}
-                                            {lesson.other_hw && (
-                                                <HomeworkCheckItem
-                                                    lessonId={lesson.id}
-                                                    field="other_status"
-                                                    label="그 외 (Other)"
-                                                    content={lesson.other_hw}
-                                                    status={check?.other_status || 'none'}
-                                                    iconColor="text-slate-500"
-                                                    Icon={CheckCircle2}
-                                                />
-                                            )}
+                                            {/* Homework Grid with Interaction */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                {lesson.vocab_hw && (
+                                                    <HomeworkCheckItem
+                                                        lessonId={lesson.id}
+                                                        field="vocab_status"
+                                                        label="단어 (Vocabulary)"
+                                                        content={lesson.vocab_hw}
+                                                        status={check?.vocab_status || 'none'}
+                                                        iconColor="text-red-500"
+                                                        Icon={BookOpen}
+                                                    />
+                                                )}
+                                                {lesson.listening_hw && (
+                                                    <HomeworkCheckItem
+                                                        lessonId={lesson.id}
+                                                        field="listening_status"
+                                                        label="듣기 (Listening)"
+                                                        content={lesson.listening_hw}
+                                                        status={check?.listening_status || 'none'}
+                                                        iconColor="text-purple-500"
+                                                        Icon={Headphones}
+                                                    />
+                                                )}
+                                                {lesson.grammar_hw && (
+                                                    <HomeworkCheckItem
+                                                        lessonId={lesson.id}
+                                                        field="grammar_status"
+                                                        label="문법 (Grammar)"
+                                                        content={lesson.grammar_hw}
+                                                        status={check?.grammar_status || 'none'}
+                                                        iconColor="text-indigo-500"
+                                                        Icon={PenTool}
+                                                    />
+                                                )}
+                                                {lesson.other_hw && (
+                                                    <HomeworkCheckItem
+                                                        lessonId={lesson.id}
+                                                        field="other_status"
+                                                        label="그 외 (Other)"
+                                                        content={lesson.other_hw}
+                                                        status={check?.other_status || 'none'}
+                                                        iconColor="text-slate-500"
+                                                        Icon={CheckCircle2}
+                                                    />
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                </Card>
-                              );
+                                    </Card>
+                                );
                             })
                         )}
                     </div>

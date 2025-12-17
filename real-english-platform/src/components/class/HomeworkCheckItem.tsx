@@ -5,7 +5,7 @@ import { toggleLessonCheck } from "@/lib/actions/check";
 import { Circle, Triangle, X, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { IconProps } from "@radix-ui/react-icons/dist/types";
+
 
 interface HomeworkCheckItemProps {
     lessonId: string;
