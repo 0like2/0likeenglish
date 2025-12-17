@@ -38,7 +38,7 @@ export default async function ClassManagementPage() {
                             <div className="flex justify-between items-start">
                                 <Badge variant="outline" className="mb-2 bg-blue-50 text-blue-700 border-blue-100">수강중</Badge>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-sm font-bold text-slate-900">₩{cls.price.toLocaleString()}</span>
+                                    <span className="text-sm font-bold text-slate-900">₩{cls.price?.toLocaleString() || '0'}</span>
                                     <EditClassDialog classData={cls} />
                                     <DeleteClassButton classId={cls.id} className={cls.name} />
                                 </div>
