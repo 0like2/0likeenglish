@@ -2,10 +2,31 @@
 
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, User } from "lucide-react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 
 export default function HeroSection() {
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+      } catch (error) {
+        console.error("Error checking auth status:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkUser();
+  }, [supabase]);
+
   return (
     <section className="relative w-full min-h-[90vh] flex items-center justify-center overflow-hidden bg-slate-50">
       {/* Background Gradients */}
@@ -60,13 +81,27 @@ export default function HeroSection() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="flex flex-col sm:flex-row gap-4 w-full justify-center"
         >
-          <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-10 h-12 text-lg rounded-full shadow-lg shadow-blue-600/20" asChild>
-            <Link href="/auth/login">
-              로그인
-            </Link>
-          </Button>
+          {!loading && (
+            <>
+              {user ? (
+                <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-10 h-12 text-lg rounded-full shadow-lg shadow-blue-600/20" asChild>
+                  <Link href="/dashboard">
+                    <User className="mr-2 w-5 h-5" />
+                    마이페이지
+                  </Link>
+                </Button>
+              ) : (
+                <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-10 h-12 text-lg rounded-full shadow-lg shadow-blue-600/20" asChild>
+                  <Link href="/auth/login">
+                    로그인
+                  </Link>
+                </Button>
+              )}
+            </>
+          )}
+
           <Button size="lg" variant="outline" className="border-slate-200 hover:bg-slate-50 text-slate-700 px-8 h-12 text-lg rounded-full" asChild>
-            <Link href="https://open.kakao.com/o/your-link" target="_blank">
+            <Link href="https://open.kakao.com/o/sHwY2QOg" target="_blank">
               수업 문의하기
             </Link>
           </Button>

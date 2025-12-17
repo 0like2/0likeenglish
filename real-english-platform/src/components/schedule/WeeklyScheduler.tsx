@@ -1,9 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { SCHEDULE_DATA } from "@/lib/mockData";
 import { Clock, User, Users, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -21,7 +20,51 @@ const getStatusStyles = (status: string) => {
     }
 };
 
-export default function WeeklyScheduler() {
+export default function WeeklyScheduler({ classes = [] }: { classes?: any[] }) {
+    // Transform DB classes to Grid Data
+    const scheduleData: Record<string, any[]> = useMemo(() => {
+        // Initialize empty structure
+        const data: Record<string, any[]> = {
+            "09:00 - 12:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }],
+            "14:00 - 17:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }],
+            "19:00 - 22:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }]
+        };
+
+        classes.forEach((cls) => {
+            if (!cls.is_active) return;
+
+            // Determine Time Slot (Row)
+            let timeKey = "";
+            if (cls.start_time?.startsWith("09") || cls.schedule?.includes("09:00")) timeKey = "09:00 - 12:00";
+            else if (cls.start_time?.startsWith("14") || cls.schedule?.includes("14:00")) timeKey = "14:00 - 17:00";
+            else if (cls.start_time?.startsWith("19") || cls.schedule?.includes("19:00")) timeKey = "19:00 - 22:00";
+
+            if (!timeKey) return;
+
+            // Determine Day Index (Column)
+            let dayIndex = -1;
+            const dayStr = cls.day_of_week || cls.schedule;
+            if (dayStr?.includes("평일") || dayStr?.includes("화") || dayStr?.includes("목")) dayIndex = 0;
+            else if (dayStr?.includes("토")) dayIndex = 1;
+            else if (dayStr?.includes("일")) dayIndex = 2;
+
+            if (dayIndex === -1) return;
+
+            // Construct Card Data
+            data[timeKey][dayIndex] = {
+                id: cls.id,
+                day: days[dayIndex],
+                type: "class",
+                title: cls.name,
+                tag: cls.name.includes("개인") || cls.name.includes("1:1") ? "개인" : "그룹",
+                status: "모집중",
+                date: cls.schedule
+            };
+        });
+
+        return data;
+    }, [classes]);
+
     return (
         <div className="w-full max-w-7xl mx-auto p-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -44,9 +87,8 @@ export default function WeeklyScheduler() {
 
                         {/* Class Cards */}
                         {/* @ts-ignore */}
-                        {SCHEDULE_DATA[time].map((slot: any, sIdx: number) => {
+                        {scheduleData[time].map((slot: any, sIdx: number) => {
                             const isActive = slot.status === "진행중";
-                            const isRecruiting = slot.status === "모집중";
 
                             const CardContent = (
                                 <Card className={cn(
@@ -76,8 +118,8 @@ export default function WeeklyScheduler() {
                                             <h4 className={cn("font-bold text-lg leading-tight", isActive ? "text-white" : "text-slate-900")}>
                                                 {slot.title}
                                             </h4>
-                                            {slot.nextDate && isActive && (
-                                                <p className="text-sm text-blue-100 mt-1">다음 수업: {slot.nextDate}</p>
+                                            {slot.date && (
+                                                <p className={cn("text-sm mt-1", isActive ? "text-blue-100" : "text-slate-500")}>{slot.date}</p>
                                             )}
                                         </div>
                                     </div>
@@ -91,7 +133,7 @@ export default function WeeklyScheduler() {
                                     className="h-full"
                                 >
                                     {isActive ? (
-                                        <Link href={`/class/${slot.id}/${slot.nextDate}`}>
+                                        <Link href={`/class/${slot.id}`}>
                                             {CardContent}
                                         </Link>
                                     ) : slot.type === "empty" ? (
@@ -99,7 +141,9 @@ export default function WeeklyScheduler() {
                                             <span className="hidden md:inline">Empty</span>
                                         </div>
                                     ) : (
-                                        CardContent
+                                        <Link href={`/class/${slot.id}`}>
+                                            {CardContent}
+                                        </Link>
                                     )}
                                 </motion.div>
                             );
