@@ -9,25 +9,17 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 const timeSlots = ["09:00 - 12:00", "14:00 - 17:00", "19:00 - 22:00"];
-const days = ["평일 (화/목)", "토요일", "일요일"];
+const days = ["화요일", "목요일", "토요일", "일요일"];
 
-const getStatusStyles = (status: string) => {
-    switch (status) {
-        case "진행중": return "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200";
-        case "모집중": return "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100";
-        case "마감": return "bg-slate-100 text-slate-500 border-slate-200";
-        default: return "bg-white border-dashed border-slate-300";
-    }
-};
-
+// ...
 export default function WeeklyScheduler({ classes = [] }: { classes?: any[] }) {
     // Transform DB classes to Grid Data
     const scheduleData: Record<string, any[]> = useMemo(() => {
         // Initialize empty structure
         const data: Record<string, any[]> = {
-            "09:00 - 12:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }],
-            "14:00 - 17:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }],
-            "19:00 - 22:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }]
+            "09:00 - 12:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }, { type: "empty" }],
+            "14:00 - 17:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }, { type: "empty" }],
+            "19:00 - 22:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }, { type: "empty" }]
         };
 
         classes.forEach((cls) => {
@@ -44,9 +36,10 @@ export default function WeeklyScheduler({ classes = [] }: { classes?: any[] }) {
             // Determine Day Index (Column)
             let dayIndex = -1;
             const dayStr = cls.day_of_week || cls.schedule;
-            if (dayStr?.includes("평일") || dayStr?.includes("화") || dayStr?.includes("목")) dayIndex = 0;
-            else if (dayStr?.includes("토")) dayIndex = 1;
-            else if (dayStr?.includes("일")) dayIndex = 2;
+            if (dayStr?.includes("화")) dayIndex = 0;
+            else if (dayStr?.includes("목")) dayIndex = 1;
+            else if (dayStr?.includes("토")) dayIndex = 2;
+            else if (dayStr?.includes("일")) dayIndex = 3;
 
             if (dayIndex === -1) return;
 
@@ -67,7 +60,7 @@ export default function WeeklyScheduler({ classes = [] }: { classes?: any[] }) {
 
     return (
         <div className="w-full max-w-7xl mx-auto p-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 {/* Header Row */}
                 <div className="hidden md:flex items-center justify-center font-bold text-slate-400 bg-slate-50 rounded-xl p-4">TIME</div>
                 {days.map((day, i) => (
