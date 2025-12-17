@@ -47,10 +47,10 @@ export default function TimetablePreview({ classes = [] }: { classes?: any[] }) 
             data[timeKey][dayIndex] = {
                 id: cls.id,
                 day: days[dayIndex],
-                type: "recruiting", // Default to recruiting for landing page
+                type: "class",
                 title: cls.name,
                 tag: cls.name.includes("개인") || cls.name.includes("1:1") ? "개인" : "그룹",
-                status: "모집중",
+                status: cls.status || "모집중",
                 date: cls.schedule // Use schedule string as subtitle/date for now
             };
         });
@@ -74,7 +74,7 @@ export default function TimetablePreview({ classes = [] }: { classes?: any[] }) 
             {/* Background Decor */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-slate-50 rounded-full blur-3xl -z-10 translate-x-1/2 -translate-y-1/2" />
 
-            <div className="container px-4 md:px-6">
+            <div className="container px-4 md:px-6 relative z-10">
                 <div className="flex flex-col items-center text-center mb-16 mx-auto max-w-3xl">
                     <div className="space-y-4 mb-8">
                         <Badge variant="secondary" className="px-4 py-1.5 text-sm font-medium bg-blue-50 text-blue-600">
