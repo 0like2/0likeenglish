@@ -5,14 +5,21 @@ import TimetablePreview from "@/components/landing/TimetablePreview";
 import AboutSection from "@/components/landing/AboutSection";
 import { Separator } from "@/components/ui/separator";
 
-export default function Home() {
+import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const supabase = await createClient();
+  const { data: classes } = await supabase.from('classes').select('*').eq('is_active', true);
+
   return (
     <main className="min-h-screen flex flex-col items-center w-full">
       <HeroSection />
       <CurriculumSection />
       <Separator className="max-w-7xl mx-auto" />
       <AboutSection />
-      <TimetablePreview />
+      <TimetablePreview classes={classes || []} />
 
       {/* Footer (Simple Placeholder) */}
       <footer className="w-full py-12 bg-slate-900 text-slate-400 text-center">

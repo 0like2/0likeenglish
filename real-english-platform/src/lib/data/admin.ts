@@ -17,6 +17,7 @@ export async function getStudentsData() {
             status
         )
     `)
+        .eq('role', 'student')
         .order('created_at', { ascending: false });
 
     if (error) {

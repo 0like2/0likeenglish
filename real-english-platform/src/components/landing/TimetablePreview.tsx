@@ -11,34 +11,62 @@ import Link from "next/link";
 const timeSlots = ["09:00 - 12:00", "14:00 - 17:00", "19:00 - 22:00"];
 const days = ["평일 (화/목)", "토요일", "일요일"];
 
-const scheduleData = {
-    "09:00 - 12:00": [
-        { day: "평일 (화/목)", type: "empty" },
-        { id: "11111111-1111-4111-8111-111111111111", day: "토요일", type: "active", title: "고3 수능 대비반", tag: "개인", status: "진행중", date: "2025-12-20" },
-        { id: "22222222-2222-4222-8222-222222222222", day: "일요일", type: "recruiting", title: "중등 심화반", tag: "그룹", status: "모집중" },
-    ],
-    "14:00 - 17:00": [
-        { id: "33333333-3333-4333-8333-333333333333", day: "평일 (화/목)", type: "active", title: "고2 내신 집중반", tag: "그룹", status: "진행중", date: "2025-12-16" },
-        { day: "토요일", type: "empty" },
-        { id: "44444444-4444-4444-8444-444444444444", day: "일요일", type: "closed", title: "고3 실전 모의고사", tag: "그룹", status: "마감" },
-    ],
-    "19:00 - 22:00": [
-        { id: "55555555-5555-4555-8555-555555555555", day: "평일 (화/목)", type: "recruiting", title: "직장인 회화 기초", tag: "개인", status: "모집중" },
-        { id: "66666666-6666-4666-8666-666666666666", day: "토요일", type: "active", title: "토익 900+ 반", tag: "그룹", status: "진행중", date: "2025-12-20" },
-        { day: "일요일", type: "empty" },
-    ]
-};
+export default function TimetablePreview({ classes = [] }: { classes?: any[] }) {
+    // Transform DB classes to Grid Data
+    const scheduleData: Record<string, any[]> = React.useMemo(() => {
+        // Initialize empty structure
+        const data: Record<string, any[]> = {
+            "09:00 - 12:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }],
+            "14:00 - 17:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }],
+            "19:00 - 22:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }]
+        };
 
-const getStatusStyles = (status: string) => {
-    switch (status) {
-        case "진행중": return "bg-blue-600 text-white border-blue-600 hover:bg-blue-700";
-        case "모집중": return "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100";
-        case "마감": return "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200";
-        default: return "bg-white border-dashed border-slate-300";
-    }
-};
+        classes.forEach((cls) => {
+            if (!cls.is_active) return;
 
-export default function TimetablePreview() {
+            // Determine Time Slot (Row)
+            let timeKey = "";
+            if (cls.start_time?.startsWith("09") || cls.schedule?.includes("09:00")) timeKey = "09:00 - 12:00";
+            else if (cls.start_time?.startsWith("14") || cls.schedule?.includes("14:00")) timeKey = "14:00 - 17:00";
+            else if (cls.start_time?.startsWith("19") || cls.schedule?.includes("19:00")) timeKey = "19:00 - 22:00";
+
+            if (!timeKey) return;
+
+            // Determine Day Index (Column)
+            let dayIndex = -1;
+            const dayStr = cls.day_of_week || cls.schedule;
+            if (dayStr?.includes("평일") || dayStr?.includes("화") || dayStr?.includes("목")) dayIndex = 0;
+            else if (dayStr?.includes("토")) dayIndex = 1;
+            else if (dayStr?.includes("일")) dayIndex = 2;
+
+            if (dayIndex === -1) return;
+
+            // Construct Card Data
+            data[timeKey][dayIndex] = {
+                id: cls.id,
+                day: days[dayIndex],
+                type: "recruiting", // Default to recruiting for landing page
+                title: cls.name,
+                tag: cls.name.includes("개인") || cls.name.includes("1:1") ? "개인" : "그룹",
+                status: "모집중",
+                date: cls.schedule // Use schedule string as subtitle/date for now
+            };
+        });
+
+        return data;
+    }, [classes]);
+
+
+    const getStatusStyles = (status: string) => {
+        switch (status) {
+            case "진행중": return "bg-blue-600 text-white border-blue-600 hover:bg-blue-700";
+            case "모집중": return "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100";
+            case "마감": return "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200";
+            default: return "bg-white border-dashed border-slate-300";
+        }
+    };
+
+
     return (
         <section className="py-24 bg-white relative overflow-hidden">
             {/* Background Decor */}

@@ -28,7 +28,14 @@ export async function assignClass(studentId: string, classId: string) {
     revalidatePath('/admin/students');
 }
 
-export async function createClass(formData: { name: string, schedule: string, price: number }) {
+export async function createClass(formData: {
+    name: string,
+    schedule: string,
+    price: number,
+    day_of_week?: string,
+    start_time?: string,
+    end_time?: string
+}) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -40,7 +47,10 @@ export async function createClass(formData: { name: string, schedule: string, pr
             teacher_id: user.id,
             name: formData.name,
             schedule: formData.schedule,
-            price: formData.price
+            price: formData.price,
+            day_of_week: formData.day_of_week,
+            start_time: formData.start_time,
+            end_time: formData.end_time
         });
 
     if (error) throw new Error(error.message);
