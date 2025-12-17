@@ -9,16 +9,17 @@ import { ArrowLeft, Calendar } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 interface PageProps {
-    params: {
+    params: Promise<{
         id: string;
         date: string;
-    };
+    }>;
 }
 
-export default function ClassDetailPage({ params }: PageProps) {
+export default async function ClassDetailPage({ params }: PageProps) {
+    const { id, date } = await params;
     // Mock data fetching
     // @ts-ignore
-    const classData = CLASS_DETAILS[params.id];
+    const classData = CLASS_DETAILS[id];
 
     if (!classData) {
         return (
