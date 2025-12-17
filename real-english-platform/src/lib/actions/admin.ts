@@ -44,7 +44,7 @@ export async function createClass(formData: {
 
     if (!user) throw new Error("Unauthorized");
 
-    const { error } = await supabase
+    const { data: newClass, error: classError } = await supabase
         .from('classes')
         .insert({
             teacher_id: user.id,
@@ -57,9 +57,38 @@ export async function createClass(formData: {
             quest_vocab_on: formData.quest_vocab_on ?? true,
             quest_listening_on: formData.quest_listening_on ?? true,
             quest_frequency: formData.quest_frequency ?? 3
-        });
+        })
+        .select()
+        .single();
 
-    if (error) throw new Error(error.message);
+    if (classError) throw new Error(classError.message);
+
+    // 2. Create Default Quests
+    const questsToInsert = [];
+    if (formData.quest_vocab_on) {
+        questsToInsert.push({
+            class_id: newClass.id,
+            type: 'Vocabulary',
+            title: '매일 영단어 암기 인증',
+            description: '오늘 외운 단어를 사진 찍어 올려주세요.',
+            weekly_frequency: formData.quest_frequency ?? 3
+        });
+    }
+    if (formData.quest_listening_on) {
+        questsToInsert.push({
+            class_id: newClass.id,
+            type: 'Listening',
+            title: '매일 듣기 평가 인증',
+            description: '듣기 평가 수행 결과를 사진 찍어 올려주세요.',
+            weekly_frequency: formData.quest_frequency ?? 3
+        });
+    }
+
+    if (questsToInsert.length > 0) {
+        const { error: questError } = await supabase.from('class_quests').insert(questsToInsert);
+        if (questError) console.error("Error creating default quests:", questError);
+    }
+
     revalidatePath('/admin/classes');
 }
 

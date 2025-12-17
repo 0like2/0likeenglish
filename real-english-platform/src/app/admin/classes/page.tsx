@@ -1,5 +1,5 @@
 import CreateClassForm from "@/components/admin/CreateClassForm";
-import AddHomeworkForm from "@/components/admin/AddHomeworkForm";
+import ManageLessonsDialog from "@/components/admin/ManageLessonsDialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Clock } from "lucide-react";
@@ -46,7 +46,7 @@ export default async function ClassManagementPage() {
                             </div>
                         </CardContent>
                         <CardFooter className="pt-4 border-t bg-slate-50/50 flex justify-between gap-2">
-                            <AddHomeworkForm className={cls.name} />
+                            <ManageLessonsDialog classId={cls.id} className={cls.name} />
                         </CardFooter>
                     </Card>
                 ))}

@@ -1,7 +1,8 @@
 import { getClassInfo, getQuestProgress, getUserProfile } from "@/lib/data/dashboard";
+import { getClassLessons } from "@/lib/data/class";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Circle, ArrowLeft } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { CheckCircle2, Circle, ArrowLeft, Calendar, FileText, BookOpen, Headphones, PenTool } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import QuestSubmission from "@/components/class/QuestSubmission";
@@ -19,7 +20,8 @@ export default async function ClassHomePage({ params }: PageProps) {
     if (!user) redirect('/auth/login');
 
     const quests = await getQuestProgress(params.id, user.id);
-    const classInfo = await getClassInfo(user.id); // Re-fetch to confirm access/name
+    const classInfo = await getClassInfo(user.id);
+    const lessons = await getClassLessons(params.id);
 
     // Calculate overall stats
     const totalGoal = quests.reduce((acc, q) => acc + (q.weekly_frequency || 1), 0);
@@ -27,10 +29,10 @@ export default async function ClassHomePage({ params }: PageProps) {
     const totalPercent = totalGoal > 0 ? Math.round((totalDone / totalGoal) * 100) : 0;
 
     return (
-        <div className="min-h-screen bg-slate-50 py-8 px-4">
-            <div className="max-w-2xl mx-auto space-y-6">
+        <div className="min-h-screen bg-slate-50 py-8 px-4 pb-20">
+            <div className="max-w-3xl mx-auto space-y-8">
                 {/* Header */}
-                <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" asChild>
                         <Link href="/dashboard">
                             <ArrowLeft className="w-6 h-6 text-slate-500" />
@@ -46,11 +48,15 @@ export default async function ClassHomePage({ params }: PageProps) {
                     </div>
                 </div>
 
-                {/* Quest List */}
-                <div className="space-y-4">
+                {/* 1. Daily Quests (Weekly) */}
+                <section className="space-y-4">
+                    <h2 className="text-lg font-bold flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-blue-600" />
+                        금주의 퀘스트 (Weekly Quest)
+                    </h2>
                     {quests.length === 0 ? (
-                        <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200">
-                            <p className="text-slate-400">등록된 숙제가 없습니다.</p>
+                        <div className="text-center py-8 bg-white rounded-xl border border-dashed border-slate-200">
+                            <p className="text-slate-400">등록된 퀘스트가 없습니다.</p>
                         </div>
                     ) : (
                         quests.map((quest) => {
@@ -76,14 +82,7 @@ export default async function ClassHomePage({ params }: PageProps) {
                                                 <h3 className={cn("text-lg font-bold", isDone ? "text-slate-500 line-through" : "text-slate-900")}>
                                                     {quest.title}
                                                 </h3>
-                                                {quest.description && (
-                                                    <p className="text-sm text-slate-500 mt-1">
-                                                        {quest.description}
-                                                    </p>
-                                                )}
                                             </div>
-
-                                            {/* Progress Bar */}
                                             <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden max-w-[200px]">
                                                 <div
                                                     className={cn("h-full transition-all", isDone ? "bg-green-500" : "bg-blue-500")}
@@ -94,8 +93,6 @@ export default async function ClassHomePage({ params }: PageProps) {
                                                 {current} / {target}회 완료
                                             </p>
                                         </div>
-
-                                        {/* Action */}
                                         <div className="sm:w-40 flex-shrink-0">
                                             <QuestSubmission
                                                 questId={quest.id}
@@ -109,7 +106,88 @@ export default async function ClassHomePage({ params }: PageProps) {
                             );
                         })
                     )}
-                </div>
+                </section>
+
+                {/* 2. Lesson Log (Notion Style) */}
+                <section className="space-y-4 pt-4 border-t border-slate-200">
+                    <h2 className="text-lg font-bold flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-slate-700" />
+                        수업 및 숙제 로그 (Lesson Log)
+                    </h2>
+
+                    <div className="space-y-4">
+                        {lessons.length === 0 ? (
+                            <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200">
+                                <p className="text-slate-400">아직 등록된 수업 로그가 없습니다.</p>
+                            </div>
+                        ) : (
+                            lessons.map((lesson) => (
+                                <Card key={lesson.id} className="overflow-hidden border-l-4 border-l-blue-500">
+                                    <div className="bg-slate-50 px-4 py-3 border-b flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-1 text-slate-500 text-sm font-medium">
+                                                <Calendar className="w-4 h-4" />
+                                                {lesson.date}
+                                            </div>
+                                            <h3 className="font-bold text-slate-800">{lesson.title || "수업 내용"}</h3>
+                                        </div>
+                                        <Badge variant={lesson.status === 'completed' ? "secondary" : "default"} className={lesson.status === 'completed' ? "bg-slate-200 text-slate-600" : "bg-blue-600"}>
+                                            {lesson.status === 'completed' ? '완료됨' : '진행중'}
+                                        </Badge>
+                                    </div>
+                                    <div className="p-4 sm:p-6 space-y-4">
+                                        {/* Main Content */}
+                                        {lesson.content && (
+                                            <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-700 whitespace-pre-wrap">
+                                                {lesson.content}
+                                            </div>
+                                        )}
+
+                                        {/* Homework Grid */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {lesson.vocab_hw && (
+                                                <div className="flex items-start gap-3">
+                                                    <BookOpen className="w-5 h-5 text-red-500 mt-0.5" />
+                                                    <div>
+                                                        <span className="text-xs font-bold text-red-500 block mb-1">단어 (Vocabulary)</span>
+                                                        <p className="text-sm text-slate-700">{lesson.vocab_hw}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {lesson.listening_hw && (
+                                                <div className="flex items-start gap-3">
+                                                    <Headphones className="w-5 h-5 text-purple-500 mt-0.5" />
+                                                    <div>
+                                                        <span className="text-xs font-bold text-purple-500 block mb-1">듣기 (Listening)</span>
+                                                        <p className="text-sm text-slate-700">{lesson.listening_hw}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {lesson.grammar_hw && (
+                                                <div className="flex items-start gap-3">
+                                                    <PenTool className="w-5 h-5 text-indigo-500 mt-0.5" />
+                                                    <div>
+                                                        <span className="text-xs font-bold text-indigo-500 block mb-1">문법 (Grammar)</span>
+                                                        <p className="text-sm text-slate-700">{lesson.grammar_hw}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {lesson.other_hw && (
+                                                <div className="flex items-start gap-3">
+                                                    <CheckCircle2 className="w-5 h-5 text-slate-500 mt-0.5" />
+                                                    <div>
+                                                        <span className="text-xs font-bold text-slate-500 block mb-1">그 외 (Other)</span>
+                                                        <p className="text-sm text-slate-700">{lesson.other_hw}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))
+                        )}
+                    </div>
+                </section>
             </div>
         </div>
     );
