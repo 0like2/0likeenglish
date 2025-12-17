@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
 export async function createLesson(classId: string, formData: any) {
@@ -21,13 +22,14 @@ export async function createLesson(classId: string, formData: any) {
         throw new Error("Only teachers can create lessons");
     }
 
-    // Use Service Role to bypass RLS for admin inserts if needed
-    // standard 'supabase' client is user-scoped and subject to RLS.
-    // We create a one-off admin client for the write operation.
-    const { createClient: createSupabaseClient } = require('@supabase/supabase-js');
-    const adminClient = createSupabaseClient(
+    // Use Service Role to bypass RLS for admin inserts
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+    }
+
+    const adminClient = createAdminClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
+        process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
     const { error } = await adminClient

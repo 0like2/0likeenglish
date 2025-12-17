@@ -12,16 +12,17 @@ import { redirect, notFound } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 interface PageProps {
-    params: {
+    params: Promise<{
         id: string;
-    };
+    }>;
 }
 
 export default async function ClassHomePage({ params }: PageProps) {
+    const { id } = await params;
     const user = await getUserProfile();
     if (!user) redirect('/auth/login');
 
-    const classInfo = await getClassDetails(params.id);
+    const classInfo = await getClassDetails(id);
     if (!classInfo) return <div className="p-8 text-center font-bold text-xl">수업 정보를 찾을 수 없습니다.<br /><Link href="/schedule"><Button className="mt-4">시간표로 돌아가기</Button></Link></div>;
 
     const quests = await getQuestProgress(params.id, user.id);
