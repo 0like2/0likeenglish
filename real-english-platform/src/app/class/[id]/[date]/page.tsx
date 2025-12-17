@@ -57,7 +57,7 @@ export default async function ClassDetailPage({ params }: PageProps) {
                         </h1>
                         <div className="flex items-center text-slate-500">
                             <Calendar className="w-4 h-4 mr-2" />
-                            {params.date} (Decoding needed if encoded)
+                            {date} (Decoding needed if encoded)
                         </div>
                     </div>
                 </div>
@@ -66,7 +66,7 @@ export default async function ClassDetailPage({ params }: PageProps) {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column: Lesson Log (Occupies 2/3 on desktop) */}
                     <div className="lg:col-span-2 space-y-6">
-                        <LessonLog date={params.date} content={classData.content} />
+                        <LessonLog date={date} content={classData.content} />
                     </div>
 
                     {/* Right Column: Homework & Actions */}
