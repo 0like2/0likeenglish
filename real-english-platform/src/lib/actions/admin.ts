@@ -1,12 +1,24 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 
 // --- Mutations Only ---
 
 export async function assignClass(studentId: string, classId: string) {
-    const supabase = await createClient();
+    // Use Admin Client if available for robustness
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    let supabase;
+
+    if (serviceRoleKey) {
+        supabase = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            serviceRoleKey
+        );
+    } else {
+        supabase = await createClient();
+    }
 
     // Deactivate old active classes
     await supabase
