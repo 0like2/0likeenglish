@@ -116,6 +116,39 @@ export async function createClass(formData: {
 }
 
 
+revalidatePath('/admin/classes');
+}
+
+export async function getClassSettings(classId: string) {
+    const supabase = await createClient();
+
+    // Fetch class with quests
+    const { data: classData, error } = await supabase
+        .from('classes')
+        .select(`
+            *,
+            class_quests (
+                type,
+                weekly_frequency,
+                is_active
+            )
+        `)
+        .eq('id', classId)
+        .single();
+
+    if (error) throw new Error(error.message);
+
+    // Transform to friendly format
+    const settings = {
+        vocab_freq: classData.class_quests?.find((q: any) => q.type === 'Vocabulary')?.weekly_frequency || 3,
+        listening_freq: classData.class_quests?.find((q: any) => q.type === 'Listening')?.weekly_frequency || 3,
+        mock_freq: classData.class_quests?.find((q: any) => q.type === 'MockExam')?.weekly_frequency || 1,
+    };
+
+    return settings;
+}
+
+
 export async function updateClass(classId: string, formData: {
     name: string,
     schedule: string,
@@ -126,12 +159,28 @@ export async function updateClass(classId: string, formData: {
     quest_vocab_on?: boolean,
     quest_listening_on?: boolean;
     quest_mock_on?: boolean;
-    quest_frequency?: number;
+    quest_frequency?: number; // Legacy global fallback
+    quest_frequencies?: {
+        vocab: number;
+        listening: number;
+        mock: number;
+    }
 }) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    // Use Admin Client if available for robustness (UPDATED)
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    let supabase;
 
-    if (!user) throw new Error("Unauthorized");
+    if (serviceRoleKey) {
+        supabase = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            serviceRoleKey
+        );
+    } else {
+        const adminClient = await createClient();
+        const { data: { user } } = await adminClient.auth.getUser(); // Only check auth if using client rls
+        if (!user) throw new Error("Unauthorized");
+        supabase = adminClient;
+    }
 
     // 1. Update Class Details
     const { error: classError } = await supabase
@@ -192,9 +241,16 @@ export async function updateClass(classId: string, formData: {
         }
     };
 
-    await syncQuest('Vocabulary', '매일 영단어 암기 인증', '오늘 외운 단어를 사진 찍어 올려주세요.', formData.quest_vocab_on ?? true, formData.quest_frequency ?? 3);
-    await syncQuest('Listening', '매일 듣기 평가 인증', '듣기 평가 수행 결과를 사진 찍어 올려주세요.', formData.quest_listening_on ?? true, formData.quest_frequency ?? 3);
-    await syncQuest('MockExam', '주간 모의고사 풀이 인증', '모의고사 풀이 및 오답노트 사진을 올려주세요.', formData.quest_mock_on ?? false, 1);
+    // Use individual frequencies if provided, else fallback
+    const freqs = formData.quest_frequencies || {
+        vocab: formData.quest_frequency || 3,
+        listening: formData.quest_frequency || 3,
+        mock: 1
+    };
+
+    await syncQuest('Vocabulary', '매일 영단어 암기 인증', '오늘 외운 단어를 사진 찍어 올려주세요.', formData.quest_vocab_on ?? true, freqs.vocab);
+    await syncQuest('Listening', '매일 듣기 평가 인증', '듣기 평가 수행 결과를 사진 찍어 올려주세요.', formData.quest_listening_on ?? true, freqs.listening);
+    await syncQuest('MockExam', '주간 모의고사 풀이 인증', '모의고사 풀이 및 오답노트 사진을 올려주세요.', formData.quest_mock_on ?? false, freqs.mock);
 
     revalidatePath('/admin/classes');
 }

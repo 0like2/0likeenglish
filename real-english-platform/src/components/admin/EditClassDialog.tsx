@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { updateClass } from "@/lib/actions/admin";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Pencil } from "lucide-react";
 
 interface EditClassDialogProps {
@@ -41,18 +41,18 @@ export default function EditClassDialog({ classData }: EditClassDialogProps) {
         timeSlot: "",
         price: classData.price?.toString() || "",
         quest_vocab_on: classData.quest_vocab_on ?? true,
+        vocab_freq: 3,
         quest_listening_on: classData.quest_listening_on ?? true,
+        listening_freq: 3,
         quest_mock_on: classData.quest_mock_on ?? false,
-        quest_frequency: classData.quest_frequency || 3
+        mock_freq: 1
     });
+    const [loadingSettings, setLoadingSettings] = useState(false);
 
-    // Parse schedule if day/time not explicitly set, or assume standard format
+    // Initial Load & Settings Fetch
     useEffect(() => {
         if (open) {
-            // Try to parse day and time from schedule string if needed, or rely on passed day_of_week
-            // Assuming format "Day Time - Time"
-            // For now, let's just use what's passed or try to split schedule
-            // "화요일 17:00 - 19:00"
+            // 1. Basic Info
             let timePart = "";
             if (classData.schedule && classData.day_of_week) {
                 timePart = classData.schedule.replace(classData.day_of_week + " ", "").trim();
@@ -61,7 +61,8 @@ export default function EditClassDialog({ classData }: EditClassDialogProps) {
                 if (parts.length >= 2) timePart = parts.slice(1).join(" ");
             }
 
-            setFormData({
+            setFormData(prev => ({
+                ...prev,
                 name: classData.name,
                 day: classData.day_of_week || "",
                 timeSlot: timePart || "",
@@ -69,8 +70,28 @@ export default function EditClassDialog({ classData }: EditClassDialogProps) {
                 quest_vocab_on: classData.quest_vocab_on ?? true,
                 quest_listening_on: classData.quest_listening_on ?? true,
                 quest_mock_on: classData.quest_mock_on ?? false,
-                quest_frequency: classData.quest_frequency || 3
-            });
+            }));
+
+            // 2. Fetch Detailed Settings (Individual Frequencies)
+            const fetchSettings = async () => {
+                setLoadingSettings(true);
+                try {
+                    // Dynamically import to avoid server action in client component issues if any
+                    const { getClassSettings } = await import('@/lib/actions/admin');
+                    const settings = await getClassSettings(classData.id);
+                    setFormData(prev => ({
+                        ...prev,
+                        vocab_freq: settings.vocab_freq,
+                        listening_freq: settings.listening_freq,
+                        mock_freq: settings.mock_freq
+                    }));
+                } catch (e) {
+                    console.error("Failed to load settings", e);
+                } finally {
+                    setLoadingSettings(false);
+                }
+            };
+            fetchSettings();
         }
     }, [open, classData]);
 
@@ -95,7 +116,11 @@ export default function EditClassDialog({ classData }: EditClassDialogProps) {
                 quest_vocab_on: formData.quest_vocab_on,
                 quest_listening_on: formData.quest_listening_on,
                 quest_mock_on: formData.quest_mock_on,
-                quest_frequency: Number(formData.quest_frequency)
+                quest_frequencies: {
+                    vocab: formData.vocab_freq,
+                    listening: formData.listening_freq,
+                    mock: formData.mock_freq
+                }
             });
             toast.success(`'${formData.name}' 수업이 수정되었습니다!`);
             setOpen(false);
@@ -155,6 +180,7 @@ export default function EditClassDialog({ classData }: EditClassDialogProps) {
                                 <SelectItem value="19:00 - 22:00">19:00 - 22:00</SelectItem>
                                 <SelectItem value="10:00 - 13:00">10:00 - 13:00</SelectItem>
                                 <SelectItem value="14:00 - 17:00">14:00 - 17:00</SelectItem>
+                                <SelectItem value="09:00 - 12:00">09:00 - 12:00</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -168,52 +194,87 @@ export default function EditClassDialog({ classData }: EditClassDialogProps) {
                             className="col-span-3"
                         />
                     </div>
-                    <div className="grid grid-cols-4 items-start gap-4">
-                        <Label className="text-right pt-2">숙제 설정</Label>
-                        <div className="col-span-3 space-y-4">
-                            <div className="flex items-center gap-2">
-                                <Label htmlFor="freq" className="text-xs text-slate-500 w-16">주간 횟수</Label>
-                                <Input
-                                    id="freq"
-                                    type="number"
-                                    className="w-20 h-8"
-                                    value={formData.quest_frequency}
-                                    onChange={(e) => setFormData({ ...formData, quest_frequency: parseInt(e.target.value) || 3 })}
-                                    min={1} max={7}
-                                />
-                                <span className="text-xs text-slate-400"> 회 / 주</span>
-                            </div>
-                            <div className="flex flex-wrap gap-4">
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id="edit-vocab"
+
+                    <div className="border-t pt-4 mt-2">
+                        <div className="flex justify-between items-center mb-4">
+                            <h4 className="font-semibold text-sm text-slate-900">숙제 설정 (Quest)</h4>
+                            {loadingSettings && <span className="text-xs text-slate-400">설정 불러오는 중...</span>}
+                        </div>
+
+                        <div className="space-y-4">
+                            {/* Vocab Row */}
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                    <Switch
                                         checked={formData.quest_vocab_on}
-                                        onCheckedChange={(c) => setFormData({ ...formData, quest_vocab_on: c as boolean })}
+                                        onCheckedChange={(c) => setFormData({ ...formData, quest_vocab_on: c })}
                                     />
-                                    <label htmlFor="edit-vocab" className="text-sm font-medium">영단어</label>
+                                    <Label className="font-medium">영단어</Label>
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id="edit-listening"
+                                {formData.quest_vocab_on && (
+                                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
+                                        <Input
+                                            type="number"
+                                            className="w-16 h-8 text-center"
+                                            value={formData.vocab_freq}
+                                            onChange={(e) => setFormData({ ...formData, vocab_freq: parseInt(e.target.value) || 0 })}
+                                            min={1} max={7}
+                                        />
+                                        <span className="text-xs text-slate-500">회 / 주</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Listening Row */}
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                    <Switch
                                         checked={formData.quest_listening_on}
-                                        onCheckedChange={(c) => setFormData({ ...formData, quest_listening_on: c as boolean })}
+                                        onCheckedChange={(c) => setFormData({ ...formData, quest_listening_on: c })}
                                     />
-                                    <label htmlFor="edit-listening" className="text-sm font-medium">듣기평가</label>
+                                    <Label className="font-medium">듣기평가</Label>
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id="edit-mock"
+                                {formData.quest_listening_on && (
+                                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
+                                        <Input
+                                            type="number"
+                                            className="w-16 h-8 text-center"
+                                            value={formData.listening_freq}
+                                            onChange={(e) => setFormData({ ...formData, listening_freq: parseInt(e.target.value) || 0 })}
+                                            min={1} max={7}
+                                        />
+                                        <span className="text-xs text-slate-500">회 / 주</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Mock Row */}
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                    <Switch
                                         checked={formData.quest_mock_on}
-                                        onCheckedChange={(c) => setFormData({ ...formData, quest_mock_on: c as boolean })}
+                                        onCheckedChange={(c) => setFormData({ ...formData, quest_mock_on: c })}
                                     />
-                                    <label htmlFor="edit-mock" className="text-sm font-medium">모의고사</label>
+                                    <Label className="font-medium">모의고사</Label>
                                 </div>
+                                {formData.quest_mock_on && (
+                                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
+                                        <Input
+                                            type="number"
+                                            className="w-16 h-8 text-center"
+                                            value={formData.mock_freq}
+                                            onChange={(e) => setFormData({ ...formData, mock_freq: parseInt(e.target.value) || 0 })}
+                                            min={1} max={7}
+                                        />
+                                        <span className="text-xs text-slate-500">회 / 주</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleSubmit}>수정 저장</Button>
+                    <Button onClick={handleSubmit} className="bg-slate-900">수정 저장</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
