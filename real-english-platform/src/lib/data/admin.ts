@@ -4,11 +4,19 @@ import { createClient as createAdminClient } from '@supabase/supabase-js';
 // --- Data Fetching (DAL) ---
 
 export async function getStudentsData() {
-    // Use Service Role to bypass RLS for admin dashboard
-    const supabase = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Use Service Role to bypass RLS for admin dashboard if available
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    let supabase;
+
+    if (serviceRoleKey) {
+        supabase = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            serviceRoleKey
+        );
+    } else {
+        console.warn("⚠️ SUPABASE_SERVICE_ROLE_KEY is missing. Falling back to standard client (RLS enforced).");
+        supabase = await createClient();
+    }
 
     const { data: students, error } = await supabase
         .from('users')
