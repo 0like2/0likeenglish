@@ -91,7 +91,7 @@ export default function ManageLessonsForm({ classId, className, onSuccess }: Man
 
                 <div className="grid gap-4">
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right text-red-600 font-medium">단어 (Vocab)</Label>
+                        <Label className="text-right font-medium text-slate-700">단어</Label>
                         <Input
                             className="col-span-3"
                             placeholder="예: Day 1-5 암기"
@@ -100,7 +100,7 @@ export default function ManageLessonsForm({ classId, className, onSuccess }: Man
                         />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right text-purple-600 font-medium">듣기 (LC)</Label>
+                        <Label className="text-right font-medium text-slate-700">듣기</Label>
                         <Input
                             className="col-span-3"
                             placeholder="예: Chapter 1 Dictation"
@@ -109,7 +109,7 @@ export default function ManageLessonsForm({ classId, className, onSuccess }: Man
                         />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right text-indigo-600 font-medium">문법 (Grammar)</Label>
+                        <Label className="text-right font-medium text-slate-700">문법</Label>
                         <Input
                             className="col-span-3"
                             placeholder="예: p.50-55 풀기"
@@ -118,10 +118,10 @@ export default function ManageLessonsForm({ classId, className, onSuccess }: Man
                         />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right text-slate-600 font-medium">기타 알림</Label>
+                        <Label className="text-right font-medium text-slate-700">문제풀이</Label>
                         <Input
                             className="col-span-3"
-                            placeholder="추가 전달사항"
+                            placeholder="예: 모의고사 1회 풀기"
                             value={formData.other_hw}
                             onChange={e => setFormData({ ...formData, other_hw: e.target.value })}
                         />

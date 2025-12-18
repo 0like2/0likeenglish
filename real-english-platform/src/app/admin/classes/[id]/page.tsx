@@ -6,6 +6,8 @@ import { Users, Clock, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import ManageLessonsForm from "@/components/admin/ManageLessonsForm";
 import { Button } from "@/components/ui/button";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -26,13 +28,12 @@ export default async function ClassDetailPage({ params }: PageProps) {
         notFound();
     }
 
-    // Fetch Recent Logs
+    // Fetch All Logs (Removed limit)
     const { data: lessonLogs } = await supabase
         .from('lesson_plans')
         .select('*')
         .eq('class_id', id)
-        .order('date', { ascending: false })
-        .limit(10);
+        .order('date', { ascending: false });
 
     const studentCount = classData.class_members?.[0]?.count || 0;
 
@@ -83,34 +84,62 @@ export default async function ClassDetailPage({ params }: PageProps) {
                             <CardTitle>최근 수업/숙제 로그</CardTitle>
                             <CardDescription>최근 등록된 10개의 수업 기록입니다.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="p-0">
                             {lessonLogs && lessonLogs.length > 0 ? (
-                                lessonLogs.map((log) => (
-                                    <div key={log.id} className="border rounded-lg p-4 space-y-2 bg-slate-50/50">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <div className="font-bold text-slate-900">{log.title || 'Untitled'}</div>
-                                                <div className="text-sm text-slate-500">{log.date}</div>
-                                            </div>
-                                            <Badge variant={log.status === 'upcoming' ? 'secondary' : 'default'}>
-                                                {log.status === 'upcoming' ? '진행 예정' : '완료됨'}
-                                            </Badge>
-                                        </div>
-                                        {log.content && (
-                                            <p className="text-sm text-slate-700 bg-white p-3 rounded border">
-                                                {log.content}
-                                            </p>
-                                        )}
-                                        <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mt-2">
-                                            {log.vocab_hw && <div><span className="font-semibold text-red-500">단어:</span> {log.vocab_hw}</div>}
-                                            {log.listening_hw && <div><span className="font-semibold text-purple-500">듣기:</span> {log.listening_hw}</div>}
-                                            {log.grammar_hw && <div><span className="font-semibold text-indigo-500">문법:</span> {log.grammar_hw}</div>}
-                                            {log.other_hw && <div><span className="font-semibold text-slate-500">기타:</span> {log.other_hw}</div>}
-                                        </div>
-                                    </div>
-                                ))
+                                <ScrollArea className="h-[600px] px-6 py-4">
+                                    <Accordion type="single" collapsible className="w-full space-y-2">
+                                        {lessonLogs.map((log) => (
+                                            <AccordionItem key={log.id} value={log.id} className="border rounded-lg px-4 bg-white/50 hover:bg-white/80 transition-colors">
+                                                <AccordionTrigger className="hover:no-underline py-4">
+                                                    <div className="flex items-center justify-between w-full mr-4">
+                                                        <div className="text-left">
+                                                            <div className="font-bold text-slate-900">{log.title || 'Untitled'}</div>
+                                                            <div className="text-sm text-slate-500 mt-0.5">{log.date}</div>
+                                                        </div>
+                                                        <Badge variant={log.status === 'upcoming' ? 'secondary' : 'default'} className="ml-2">
+                                                            {log.status === 'upcoming' ? '예정' : '완료'}
+                                                        </Badge>
+                                                    </div>
+                                                </AccordionTrigger>
+                                                <AccordionContent className="pt-2 pb-4 border-t mt-2">
+                                                    {log.content && (
+                                                        <div className="mb-4 bg-slate-50 p-3 rounded-md text-slate-700 text-sm whitespace-pre-wrap">
+                                                            {log.content}
+                                                        </div>
+                                                    )}
+                                                    <div className="grid grid-cols-1 gap-2 text-sm">
+                                                        {log.vocab_hw && (
+                                                            <div className="flex gap-2 items-start">
+                                                                <span className="font-semibold text-slate-600 min-w-[60px]">단어:</span>
+                                                                <span className="text-slate-800">{log.vocab_hw}</span>
+                                                            </div>
+                                                        )}
+                                                        {log.listening_hw && (
+                                                            <div className="flex gap-2 items-start">
+                                                                <span className="font-semibold text-slate-600 min-w-[60px]">듣기:</span>
+                                                                <span className="text-slate-800">{log.listening_hw}</span>
+                                                            </div>
+                                                        )}
+                                                        {log.grammar_hw && (
+                                                            <div className="flex gap-2 items-start">
+                                                                <span className="font-semibold text-slate-600 min-w-[60px]">문법:</span>
+                                                                <span className="text-slate-800">{log.grammar_hw}</span>
+                                                            </div>
+                                                        )}
+                                                        {log.other_hw && (
+                                                            <div className="flex gap-2 items-start">
+                                                                <span className="font-semibold text-slate-600 min-w-[60px]">문제풀이:</span>
+                                                                <span className="text-slate-800">{log.other_hw}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        ))}
+                                    </Accordion>
+                                </ScrollArea>
                             ) : (
-                                <div className="text-center py-8 text-slate-500">
+                                <div className="text-center py-12 text-slate-500">
                                     등록된 수업 로그가 없습니다.
                                 </div>
                             )}
