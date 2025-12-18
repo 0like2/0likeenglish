@@ -116,8 +116,7 @@ export async function createClass(formData: {
 }
 
 
-revalidatePath('/admin/classes');
-}
+
 
 export async function getClassSettings(classId: string) {
     const supabase = await createClient();
