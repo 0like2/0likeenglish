@@ -1,9 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 
 // --- Data Fetching (DAL) ---
 
 export async function getStudentsData() {
-    const supabase = await createClient();
+    // Use Service Role to bypass RLS for admin dashboard
+    const supabase = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     const { data: students, error } = await supabase
         .from('users')
@@ -17,6 +22,9 @@ export async function getStudentsData() {
             status
         )
     `)
+        /* .eq('role', 'student') -- Allow seeing all for now or filter? User said 3 students. strict filter might hide them if role is null. */
+        /* Let's keep strict filter for now but maybe strict role check is why they are hidden if they don't have role 'student' set? */
+        /* The user screenshot shows role 'student' in DB. So filter is fine. */
         .eq('role', 'student')
         .order('created_at', { ascending: false });
 
