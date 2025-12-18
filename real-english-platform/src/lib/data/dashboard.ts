@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 
 export async function getUserProfile() {
@@ -37,7 +38,19 @@ export async function getPaymentStatus(userId: string) {
 }
 
 export async function getClassInfo(userId: string) {
-    const supabase = await createClient();
+    // Use Service Role to bypass RLS if possible (prevents issues where student can't see own membership due to policy gap)
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    let supabase;
+
+    if (serviceRoleKey) {
+        supabase = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            serviceRoleKey
+        );
+    } else {
+        supabase = await createClient();
+    }
+
     const { data: member } = await supabase
         .from('class_members')
         .select('*, classes(*)')
