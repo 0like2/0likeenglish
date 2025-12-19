@@ -11,7 +11,8 @@ import {
     PenTool,
     Settings,
     LogOut,
-    LayoutDashboard
+    LayoutDashboard,
+    ClipboardList
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
     { label: "대시보드", href: "/admin", icon: LayoutDashboard },
     { label: "학생 관리", href: "/admin/students", icon: Users },
     { label: "수업/반 관리", href: "/admin/classes", icon: BookOpen },
+    { label: "모의고사 관리", href: "/admin/exams", icon: ClipboardList },
     { label: "듣기 관리", href: "/admin/listening", icon: Headphones },
     { label: "블로그/공지", href: "/admin/blog", icon: PenTool },
     { label: "설정", href: "/admin/settings", icon: Settings },

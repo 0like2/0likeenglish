@@ -4,15 +4,22 @@ import { useState } from "react";
 import OMRRow from "./OMRRow";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Card } from "@/components/ui/card";
-import { MOCK_EXAM_KEY, MOCK_EXAM_KEY_TITLE } from "@/lib/mockData";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { submitExam } from "@/lib/actions/exam";
+import { toast } from "sonner";
 
-export default function MockExamOMR() {
+interface MockExamOMRProps {
+    examId?: string;
+    examTitle?: string;
+}
+
+export default function MockExamOMR({ examId, examTitle = "모의고사" }: MockExamOMRProps) {
     const [answers, setAnswers] = useState<number[]>(new Array(45).fill(0));
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [isGraded, setIsGraded] = useState(false);
     const [showResultDialog, setShowResultDialog] = useState(false);
     const [score, setScore] = useState(0);
+    const [examResults, setExamResults] = useState<any[]>([]);
 
     const handleSelect = (questionIndex: number, value: number) => {
         if (isGraded) return;
@@ -21,56 +28,75 @@ export default function MockExamOMR() {
         setAnswers(newAnswers);
     };
 
-    const handleGrade = () => {
-        // Basic validation: Check if all answered? Or allow incomplete?
-        // Let's allow incomplete but warn? For now, just grade.
+    const handleGrade = async () => {
+        if (!examId) {
+            toast.error("시험 ID가 없습니다. 관리자에게 문의하세요.");
+            return;
+        }
 
-        let correctCount = 0;
-        answers.forEach((ans, idx) => {
-            if (ans === MOCK_EXAM_KEY[idx]) correctCount++;
-        });
+        // Basic validation
+        if (answers.every(a => a === 0)) {
+            toast.error("답안을 입력해주세요.");
+            return;
+        }
 
-        // Score calculation logic (Simplified: Each question ~2.2 points or just count)
-        // Real SAT has diverse points. Let's precise: 2pts, 3pts. 
-        // For MVP, let's assume raw score = correctCount based (or just standard 100 max)
-        const calculatedScore = Math.round((correctCount / 45) * 100);
-        setScore(calculatedScore);
-        setIsGraded(true);
-        setShowResultDialog(true);
+        setIsSubmitting(true);
+        try {
+            const result = await submitExam(examId, answers);
+
+            if (result.success && result.details) {
+                setScore(result.score || 0);
+                setExamResults(result.details);
+                setIsGraded(true);
+                setShowResultDialog(true);
+                toast.success(result.message);
+            } else {
+                toast.error(result.message || "채점에 실패했습니다.");
+            }
+        } catch (error) {
+            toast.error("오류가 발생했습니다.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleReset = () => {
-        setAnswers(new Array(45).fill(0));
-        setIsGraded(false);
-        setShowResultDialog(false);
-        setScore(0);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (confirm("다시 풀면 기록이 초기화됩니다. 계속하시겠습니까?")) {
+            setAnswers(new Array(45).fill(0));
+            setIsGraded(false);
+            setShowResultDialog(false);
+            setScore(0);
+            setExamResults([]);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     };
 
     return (
         <div className="max-w-3xl mx-auto space-y-8">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 text-center space-y-4">
-                <h2 className="text-2xl font-bold text-slate-900">{MOCK_EXAM_KEY_TITLE}</h2>
+                <h2 className="text-2xl font-bold text-slate-900">{examTitle}</h2>
                 <p className="text-slate-500">
                     실전처럼 시간을 재고 풀어보세요. 답안을 모두 체크한 후 '채점하기'를 누르세요.
                 </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-2">
-                {/* Split into 3 columns for better desktop view */}
                 {[0, 15, 30].map((startIndex) => (
                     <div key={startIndex} className="space-y-2">
                         {Array.from({ length: 15 }).map((_, i) => {
                             const qIndex = startIndex + i;
-                            // Check if out of bounds (though 45 is divisible by 3)
                             if (qIndex >= 45) return null;
+
+                            // If graded, find correct answer from results
+                            const result = isGraded ? examResults[qIndex] : null;
+                            const correctAnswer = result ? result.correctAnswer : undefined;
 
                             return (
                                 <OMRRow
                                     key={qIndex}
                                     questionNumber={qIndex + 1}
                                     selected={answers[qIndex]}
-                                    correctAnswer={isGraded ? MOCK_EXAM_KEY[qIndex] : undefined}
+                                    correctAnswer={correctAnswer}
                                     onSelect={(val) => handleSelect(qIndex, val)}
                                     disabled={isGraded}
                                 />
@@ -86,9 +112,10 @@ export default function MockExamOMR() {
                         size="lg"
                         className="w-full max-w-md h-14 text-lg font-bold rounded-full shadow-xl bg-blue-600 hover:bg-blue-700 hover:scale-105 transition-all duration-300"
                         onClick={handleGrade}
-                        disabled={answers.every(a => a === 0)} // Disable if completely empty
+                        disabled={isSubmitting}
                     >
-                        채점하기
+                        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                        {isSubmitting ? "채점 중..." : "제출 및 채점하기"}
                     </Button>
                 ) : (
                     <Button
@@ -125,11 +152,11 @@ export default function MockExamOMR() {
                         <div className="space-y-4">
                             <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                                 <span className="text-slate-600">맞은 개수</span>
-                                <span className="font-bold text-slate-900">{answers.filter((a, i) => a === MOCK_EXAM_KEY[i]).length} / 45</span>
+                                <span className="font-bold text-slate-900">{examResults.filter(r => r.isCorrect).length} / 45</span>
                             </div>
                             <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
                                 <span className="text-red-600">틀린 개수</span>
-                                <span className="font-bold text-red-900">{answers.filter((a, i) => a !== 0 && a !== MOCK_EXAM_KEY[i]).length}</span>
+                                <span className="font-bold text-red-900">{examResults.filter(r => !r.isCorrect).length}</span>
                             </div>
                         </div>
                     </div>
