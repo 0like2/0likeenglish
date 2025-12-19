@@ -52,67 +52,77 @@ export async function createClass(formData: {
     quest_mock_on?: boolean;
     quest_frequency?: number;
 }) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) throw new Error("Unauthorized");
+        if (!user) return { success: false, message: "로그인이 필요합니다." };
 
-    const { data: newClass, error: classError } = await supabase
-        .from('classes')
-        .insert({
-            teacher_id: user.id,
-            name: formData.name,
-            schedule: formData.schedule,
-            price: formData.price,
-            day_of_week: formData.day_of_week,
-            start_time: formData.start_time,
-            end_time: formData.end_time,
-            quest_vocab_on: formData.quest_vocab_on ?? true,
-            quest_listening_on: formData.quest_listening_on ?? true,
-            quest_mock_on: formData.quest_mock_on ?? false,
-            quest_frequency: formData.quest_frequency ?? 3
-        })
-        .select()
-        .single();
+        const { data: newClass, error: classError } = await supabase
+            .from('classes')
+            .insert({
+                teacher_id: user.id,
+                name: formData.name,
+                schedule: formData.schedule,
+                price: formData.price,
+                day_of_week: formData.day_of_week,
+                start_time: formData.start_time,
+                end_time: formData.end_time,
+                quest_vocab_on: formData.quest_vocab_on ?? true,
+                quest_listening_on: formData.quest_listening_on ?? true,
+                quest_mock_on: formData.quest_mock_on ?? false,
+                quest_frequency: formData.quest_frequency ?? 3,
+                is_active: true // Ensure class is active by default
+            })
+            .select()
+            .single();
 
-    if (classError) throw new Error(classError.message);
+        if (classError) {
+            console.error("Create Class Error:", classError);
+            return { success: false, message: `수업 등록 실패: ${classError.message}` };
+        }
 
-    // 2. Create Default Quests
-    const questsToInsert = [];
-    if (formData.quest_vocab_on) {
-        questsToInsert.push({
-            class_id: newClass.id,
-            type: 'Vocabulary',
-            title: '매일 영단어 암기 인증',
-            description: '오늘 외운 단어를 사진 찍어 올려주세요.',
-            weekly_frequency: formData.quest_frequency ?? 3
-        });
+        // 2. Create Default Quests
+        const questsToInsert = [];
+        if (formData.quest_vocab_on) {
+            questsToInsert.push({
+                class_id: newClass.id,
+                type: 'Vocabulary',
+                title: '매일 영단어 암기 인증',
+                description: '오늘 외운 단어를 사진 찍어 올려주세요.',
+                weekly_frequency: formData.quest_frequency ?? 3
+            });
+        }
+        if (formData.quest_listening_on) {
+            questsToInsert.push({
+                class_id: newClass.id,
+                type: 'Listening',
+                title: '매일 듣기 평가 인증',
+                description: '듣기 평가 수행 결과를 사진 찍어 올려주세요.',
+                weekly_frequency: formData.quest_frequency ?? 3
+            });
+        }
+        if (formData.quest_mock_on) {
+            questsToInsert.push({
+                class_id: newClass.id,
+                type: 'MockExam',
+                title: '주간 모의고사 풀이 인증',
+                description: '모의고사 풀이 및 오답노트 사진을 올려주세요.',
+                weekly_frequency: 1 // Mock exams are usually once a week or separate freq? User said "Frequency based". I'll default to 1 for Mock.
+            });
+        }
+
+        if (questsToInsert.length > 0) {
+            const { error: questError } = await supabase.from('class_quests').insert(questsToInsert);
+            if (questError) console.error("Error creating default quests:", questError);
+        }
+
+        revalidatePath('/admin/classes');
+        return { success: true };
+    } catch (e: any) {
+        console.error("Unexpected error:", e);
+        return { success: false, message: "알 수 없는 오류가 발생했습니다." };
     }
-    if (formData.quest_listening_on) {
-        questsToInsert.push({
-            class_id: newClass.id,
-            type: 'Listening',
-            title: '매일 듣기 평가 인증',
-            description: '듣기 평가 수행 결과를 사진 찍어 올려주세요.',
-            weekly_frequency: formData.quest_frequency ?? 3
-        });
-    }
-    if (formData.quest_mock_on) {
-        questsToInsert.push({
-            class_id: newClass.id,
-            type: 'MockExam',
-            title: '주간 모의고사 풀이 인증',
-            description: '모의고사 풀이 및 오답노트 사진을 올려주세요.',
-            weekly_frequency: 1 // Mock exams are usually once a week or separate freq? User said "Frequency based". I'll default to 1 for Mock.
-        });
-    }
-
-    if (questsToInsert.length > 0) {
-        const { error: questError } = await supabase.from('class_quests').insert(questsToInsert);
-        if (questError) console.error("Error creating default quests:", questError);
-    }
-
-    revalidatePath('/admin/classes');
 }
 
 
@@ -194,7 +204,8 @@ export async function updateClass(classId: string, formData: {
             quest_vocab_on: formData.quest_vocab_on ?? true,
             quest_listening_on: formData.quest_listening_on ?? true,
             quest_mock_on: formData.quest_mock_on ?? false,
-            quest_frequency: formData.quest_frequency ?? 3
+            quest_frequency: formData.quest_frequency ?? 3,
+            is_active: true // Force active on update
         })
         .eq('id', classId);
 
@@ -255,25 +266,33 @@ export async function updateClass(classId: string, formData: {
 }
 
 export async function createBlogPost(data: { title: string, content: string, category: string, is_published: boolean }) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) throw new Error("Unauthorized");
+        if (!user) return { success: false, message: "로그인이 필요합니다." };
 
-    const { error } = await supabase
-        .from('blog_posts')
-        .insert({
-            teacher_id: user.id,
-            title: data.title,
-            content: data.content,
-            category: data.category,
-            is_published: data.is_published
-        });
+        const { error } = await supabase
+            .from('blog_posts')
+            .insert({
+                teacher_id: user.id,
+                title: data.title,
+                content: data.content,
+                category: data.category,
+                is_published: data.is_published
+            });
 
-    if (error) throw new Error(error.message);
-    revalidatePath('/admin/blog');
-    // We don't redirect here, let client handle it or redirect?
-    // Client side usually handles redirect after success
+        if (error) {
+            console.error("Create Blog Post Error:", error);
+            return { success: false, message: `등록 실패: ${error.message}` };
+        }
+
+        revalidatePath('/admin/blog');
+        return { success: true };
+    } catch (e: any) {
+        console.error("Unexpected error:", e);
+        return { success: false, message: "알 수 없는 오류가 발생했습니다." };
+    }
 }
 
 export async function deleteClass(classId: string) {

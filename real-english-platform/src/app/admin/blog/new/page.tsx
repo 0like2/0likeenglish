@@ -26,15 +26,21 @@ export default function NewPostPage() {
         }
 
         try {
-            await createBlogPost({
+            const result = await createBlogPost({
                 title,
                 content,
                 category,
                 is_published: status === 'published'
             });
-            toast.success(status === 'published' ? "성공적으로 발행되었습니다!" : "임시저장 되었습니다.");
-            router.push("/admin/blog");
-        } catch (e) {
+
+            if (result.success) {
+                toast.success(status === 'published' ? "성공적으로 발행되었습니다!" : "임시저장 되었습니다.");
+                router.push("/admin/blog");
+            } else {
+                toast.error(result.message || "등록에 실패했습니다.");
+            }
+        } catch (error) {
+            console.error(error);
             toast.error("글 저장 중 오류가 발생했습니다.");
         }
     };

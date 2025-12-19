@@ -17,11 +17,17 @@ export async function updateProfile(prevState: any, formData: FormData) {
         return { success: false, message: "이름은 2글자 이상이어야 합니다." };
     }
 
-    // Update public.users table
+    // Upsert public.users table to ensure row exists
+    const updates = {
+        id: user.id,
+        email: user.email,
+        name: name.trim(),
+        // Add other fields if necessary, assuming defaults handle the rest
+    };
+
     const { error } = await supabase
         .from('users')
-        .update({ name: name.trim() })
-        .eq('id', user.id);
+        .upsert(updates, { onConflict: 'id' });
 
     if (error) {
         console.error("Update profile error:", error);

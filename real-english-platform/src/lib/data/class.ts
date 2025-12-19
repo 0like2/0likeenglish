@@ -38,3 +38,29 @@ export async function getClassDetails(classId: string) {
         .single();
     return data;
 }
+
+export async function getLessonDetails(classId: string, date: string) {
+    const supabase = await createClient();
+    // Decode date if needed, or assume YYYY-MM-DD
+    const { data } = await supabase
+        .from('lesson_plans')
+        .select('*')
+        .eq('class_id', classId)
+        .eq('date', date)
+        .single();
+
+
+    return data;
+}
+
+export async function getClassQuests(classId: string) {
+    const supabase = await createClient();
+    const { data } = await supabase
+        .from('class_quests')
+        .select('*')
+        .eq('class_id', classId)
+        .eq('is_active', true)
+        .order('title', { ascending: true });
+
+    return data || [];
+}

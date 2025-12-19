@@ -28,7 +28,7 @@ export default function WeeklyScheduler({ classes = [] }: { classes?: any[] }) {
         const data: Record<string, any[]> = {
             "09:00 - 12:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }, { type: "empty" }],
             "14:00 - 17:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }, { type: "empty" }],
-            "19:00 - 22:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }, { type: "empty" }]
+            "18:00 - 22:00": [{ type: "empty" }, { type: "empty" }, { type: "empty" }, { type: "empty" }]
         };
 
         classes.forEach((cls) => {
@@ -36,9 +36,22 @@ export default function WeeklyScheduler({ classes = [] }: { classes?: any[] }) {
 
             // Determine Time Slot (Row)
             let timeKey = "";
-            if (cls.start_time?.startsWith("09") || cls.schedule?.includes("09:00")) timeKey = "09:00 - 12:00";
-            else if (cls.start_time?.startsWith("14") || cls.schedule?.includes("14:00")) timeKey = "14:00 - 17:00";
-            else if (cls.start_time?.startsWith("19") || cls.schedule?.includes("19:00")) timeKey = "19:00 - 22:00";
+            let startHour = 9; // default
+
+            if (cls.start_time) {
+                startHour = parseInt(cls.start_time.split(':')[0]);
+            } else if (cls.schedule) {
+                // Try to parse from schedule string like "화요일 14:00 - 17:00"
+                const match = cls.schedule.match(/(\d{2}):\d{2}/);
+                if (match) {
+                    startHour = parseInt(match[1]);
+                }
+            }
+
+            // Bucket logic
+            if (startHour < 13) timeKey = "09:00 - 12:00"; // Morning (up to 12:59)
+            else if (startHour < 18) timeKey = "14:00 - 17:00"; // Afternoon (13:00 - 17:59)
+            else timeKey = "18:00 - 22:00"; // Evening (18:00+)
 
             if (!timeKey) return;
 

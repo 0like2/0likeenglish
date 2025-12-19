@@ -50,7 +50,7 @@ export default function CreateClassForm() {
         const [startTime, endTime] = formData.timeSlot.split(" - ");
 
         try {
-            await createClass({
+            const result = await createClass({
                 name: formData.name,
                 schedule: fullSchedule,
                 price: Number(formData.price) || 0,
@@ -62,15 +62,20 @@ export default function CreateClassForm() {
                 quest_mock_on: formData.quest_mock_on,
                 quest_frequency: Number(formData.quest_frequency)
             });
-            toast.success(`새로운 수업 '${formData.name}'이(가) 개설되었습니다!`);
-            setOpen(false);
-            setFormData({
-                name: "", day: "", timeSlot: "", price: "",
-                quest_vocab_on: true, quest_listening_on: true, quest_mock_on: false, quest_frequency: 3
-            });
+
+            if (result.success) {
+                toast.success(`새로운 수업 '${formData.name}'이(가) 개설되었습니다!`);
+                setOpen(false);
+                setFormData({
+                    name: "", day: "", timeSlot: "", price: "",
+                    quest_vocab_on: true, quest_listening_on: true, quest_mock_on: false, quest_frequency: 3
+                });
+            } else {
+                toast.error(result.message || "수업 생성 실패");
+            }
         } catch (e) {
             console.error(e);
-            toast.error("수업 생성 중 오류가 발생했습니다. (권한을 확인해주세요)");
+            toast.error("수업 생성 중 알 수 없는 오류가 발생했습니다.");
         }
     };
 
