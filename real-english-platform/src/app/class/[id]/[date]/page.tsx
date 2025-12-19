@@ -1,11 +1,11 @@
-import { getLessonDetails, getClassDetails, getClassQuests } from "@/lib/data/class";
+import { getLessonDetails, getClassDetails, getClassQuests, getClassExams } from "@/lib/data/class";
 import LessonLog from "@/components/class/LessonLog";
 import HomeworkChecklist from "@/components/class/HomeworkChecklist";
 import HomeworkUpload from "@/components/class/HomeworkUpload";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Calendar } from "lucide-react";
+import { ArrowLeft, Calendar, FileCheck, ChevronRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 interface PageProps {
@@ -20,10 +20,11 @@ export default async function ClassDetailPage({ params }: PageProps) {
     const decodedDate = decodeURIComponent(date);
 
     // Fetch real data
-    const [lessonData, classInfo, fileQuests] = await Promise.all([
+    const [lessonData, classInfo, fileQuests, exams] = await Promise.all([
         getLessonDetails(id, decodedDate),
         getClassDetails(id),
-        getClassQuests(id)
+        getClassQuests(id),
+        getClassExams(id)
     ]);
 
     if (!lessonData || !classInfo) {
@@ -77,10 +78,55 @@ export default async function ClassDetailPage({ params }: PageProps) {
                     {/* Left Column: Lesson Log (Occupies 2/3 on desktop) */}
                     <div className="lg:col-span-2 space-y-6">
                         <LessonLog date={decodedDate} content={lessonData.content || lessonData.title || "등록된 내용이 없습니다."} />
+
+                        {/* Mock Exams List - Placed here or right? Right seems better for 'Tasks/Actions' but let's check content balance. 
+                             If many exams, Left is better. If few, Right. 
+                             Let's put it in Right column to group with Homework.
+                         */}
                     </div>
 
                     {/* Right Column: Homework & Actions */}
                     <div className="space-y-6">
+                        {/* Mock Exams Section */}
+                        {exams && exams.length > 0 && (
+                            <Card className="shadow-md border-slate-100">
+                                <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
+                                    <div className="flex justify-between items-center">
+                                        <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                            <FileCheck className="w-5 h-5 text-blue-600" />
+                                            실전 모의고사
+                                        </CardTitle>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="pt-4 space-y-3">
+                                    {exams.map((exam: any) => (
+                                        <div key={exam.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-100 hover:border-blue-200 transition-colors">
+                                            <div className="flex-1 min-w-0 mr-3">
+                                                <div className="font-medium text-slate-900 truncate">{exam.title}</div>
+                                                <div className="text-xs text-slate-500 mt-1">
+                                                    {exam.submission ? (
+                                                        <span className="text-green-600 font-bold">
+                                                            {exam.submission.score}점
+                                                            <span className="font-normal text-slate-400 mx-1">|</span>
+                                                            {new Date(exam.submission.created_at).toLocaleDateString()}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-slate-400">미응시</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <Button size="sm" variant={exam.submission ? "outline" : "default"} asChild>
+                                                <Link href={`/exam/${exam.id}`}>
+                                                    {exam.submission ? "결과 보기" : "응시하기"}
+                                                    <ChevronRight className="w-4 h-4 ml-1" />
+                                                </Link>
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </CardContent>
+                            </Card>
+                        )}
+
                         {/* Homework Checklist */}
                         <HomeworkChecklist items={homeworks} />
 
