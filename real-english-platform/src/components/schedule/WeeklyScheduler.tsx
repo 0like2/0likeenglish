@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-const timeSlots = ["09:00 - 12:00", "14:00 - 17:00", "19:00 - 22:00"];
+const timeSlots = ["09:00 - 12:00", "14:00 - 17:00", "18:00 - 22:00"];
 // ...
 const days = ["화요일", "목요일", "토요일", "일요일"];
 

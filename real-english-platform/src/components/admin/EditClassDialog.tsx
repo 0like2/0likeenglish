@@ -177,7 +177,7 @@ export default function EditClassDialog({ classData }: EditClassDialogProps) {
                             <SelectContent>
                                 <SelectItem value="15:00 - 17:00">15:00 - 17:00</SelectItem>
                                 <SelectItem value="17:00 - 19:00">17:00 - 19:00</SelectItem>
-                                <SelectItem value="19:00 - 22:00">19:00 - 22:00</SelectItem>
+                                <SelectItem value="18:00 - 22:00">18:00 - 22:00</SelectItem>
                                 <SelectItem value="10:00 - 13:00">10:00 - 13:00</SelectItem>
                                 <SelectItem value="14:00 - 17:00">14:00 - 17:00</SelectItem>
                                 <SelectItem value="09:00 - 12:00">09:00 - 12:00</SelectItem>

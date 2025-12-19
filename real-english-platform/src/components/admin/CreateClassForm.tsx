@@ -134,7 +134,7 @@ export default function CreateClassForm() {
                                 <SelectContent>
                                     <SelectItem value="09:00 - 12:00">09:00 - 12:00 (오전)</SelectItem>
                                     <SelectItem value="14:00 - 17:00">14:00 - 17:00 (오후)</SelectItem>
-                                    <SelectItem value="19:00 - 22:00">19:00 - 22:00 (저녁)</SelectItem>
+                                    <SelectItem value="18:00 - 22:00">18:00 - 22:00 (저녁)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

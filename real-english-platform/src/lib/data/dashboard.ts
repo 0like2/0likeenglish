@@ -3,14 +3,31 @@ import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 
 export async function getUserProfile() {
-    const supabase = await createClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const supabaseUser = await createClient();
+    const { data: { user }, error } = await supabaseUser.auth.getUser();
 
     if (error || !user) {
         return null; // Handle auth redirect in middleware or page
     }
 
-    const { data: profile } = await supabase
+    // Use Service Role to bypass RLS for reading profile
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    let dbClient = supabaseUser;
+
+    if (serviceRoleKey) {
+        dbClient = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            serviceRoleKey,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            }
+        ) as any;
+    }
+
+    const { data: profile } = await dbClient
         .from('users')
         .select('*')
         .eq('id', user.id)
