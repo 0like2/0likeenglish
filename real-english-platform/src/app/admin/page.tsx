@@ -88,24 +88,6 @@ export default function AdminDashboardPage() {
                     >
                         학습자료실 예시 데이터 넣기
                     </Button>
-
-                    <Button
-                        onClick={async () => {
-                            if (!confirm('학생 및 수업 데이터를 초기화하시겠습니까? (기존 데이터 유지, 중복 시 업데이트)')) return;
-                            const { seedStudents } = await import('@/lib/actions/admin');
-                            const result = await seedStudents();
-                            if (result.success) {
-                                alert("학생 데이터가 복구되었습니다!");
-                                window.location.reload();
-                            } else {
-                                alert("복구 실패: " + result.message);
-                            }
-                        }}
-                        variant="outline"
-                        className="ml-2 bg-white border-blue-200 text-blue-700 hover:bg-blue-100 hover:text-blue-900"
-                    >
-                        학생 예시 데이터 넣기
-                    </Button>
                 </CardContent>
             </Card>
 
