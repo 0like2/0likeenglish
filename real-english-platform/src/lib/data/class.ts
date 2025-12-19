@@ -64,3 +64,38 @@ export async function getClassQuests(classId: string) {
 
     return data || [];
 }
+
+export async function getClassExams(classId: string) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // 1. Fetch Exams
+    const { data: exams } = await supabase
+        .from('class_exams')
+        .select('*')
+        .eq('class_id', classId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+    if (!exams || exams.length === 0) return [];
+
+    let submissions: any[] = [];
+    if (user) {
+        // 2. Fetch User Submissions
+        const { data: subs } = await supabase
+            .from('exam_submissions')
+            .select('*')
+            .eq('student_id', user.id)
+            .in('exam_id', exams.map(e => e.id));
+        submissions = subs || [];
+    }
+
+    // 3. Merge
+    return exams.map(exam => {
+        const submission = submissions.find(s => s.exam_id === exam.id);
+        return {
+            ...exam,
+            submission // undefined if not taken
+        };
+    });
+}
