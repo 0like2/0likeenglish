@@ -22,17 +22,8 @@ export async function createLesson(classId: string, formData: any) {
         throw new Error("Only teachers can create lessons");
     }
 
-    // Use Service Role to bypass RLS for admin inserts
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
-    }
-
-    const adminClient = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-
-    const { error } = await adminClient
+    // Use standard client with RLS policies
+    const { error } = await supabase
         .from('lesson_plans')
         .insert({
             class_id: classId,
@@ -43,6 +34,7 @@ export async function createLesson(classId: string, formData: any) {
             listening_hw: formData.listening_hw,
             grammar_hw: formData.grammar_hw,
             other_hw: formData.other_hw,
+            exam_id: formData.exam_id || null, // Link exam if selected
             status: 'upcoming'
         });
 

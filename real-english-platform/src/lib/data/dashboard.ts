@@ -82,7 +82,10 @@ export async function getRecentLessons(classId: string) {
     const supabase = await createClient();
     const { data: lessons } = await supabase
         .from('lesson_plans')
-        .select('*')
+        .select(`
+            *,
+            exams ( id, title )
+        `)
         .eq('class_id', classId)
         .order('date', { ascending: false })
         .limit(4);

@@ -12,16 +12,13 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-interface ExamFormProps {
-    classes: { id: string; name: string }[];
-}
 
-export default function ExamForm({ classes }: ExamFormProps) {
+export default function ExamForm() {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [title, setTitle] = useState("");
-    const [selectedClassId, setSelectedClassId] = useState<string>("");
+    const [category, setCategory] = useState("High 1"); // Default
 
     // Arrays for answers (1-45), default 0 (unset)
     const [answers, setAnswers] = useState<number[]>(new Array(45).fill(0));
@@ -65,10 +62,7 @@ export default function ExamForm({ classes }: ExamFormProps) {
             toast.error("시험 제목을 입력해주세요.");
             return;
         }
-        if (!selectedClassId) {
-            toast.error("수업을 선택해주세요.");
-            return;
-        }
+
         if (answers.some(a => a === 0)) {
             toast.error("모든 문제의 정답을 입력해주세요.");
             return;
@@ -78,10 +72,10 @@ export default function ExamForm({ classes }: ExamFormProps) {
 
         try {
             const result = await createExam({
-                class_id: selectedClassId,
                 title: title,
                 answers: answers,
-                score_distribution: Array.from(threePointIndices)
+                score_distribution: Array.from(threePointIndices),
+                category: category
             });
 
             if (result.success) {
@@ -102,33 +96,37 @@ export default function ExamForm({ classes }: ExamFormProps) {
             <Card>
                 <CardHeader>
                     <CardTitle>기본 정보</CardTitle>
-                    <CardDescription>모의고사 제목과 대상 수업을 선택하세요.</CardDescription>
+                    <CardDescription>모의고사 제목과 카테고리를 입력하세요.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="title">시험 제목</Label>
-                        <Input
-                            id="title"
-                            placeholder="예: 2024학년도 3월 전국연합학력평가"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>대상 수업</Label>
-                        <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="수업 선택" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {classes.map((cls) => (
-                                    <SelectItem key={cls.id} value={cls.id}>
-                                        {cls.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="space-y-2 md:col-span-3">
+                            <Label htmlFor="title">시험 제목</Label>
+                            <Input
+                                id="title"
+                                placeholder="예: 2024학년도 3월 전국연합학력평가"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>카테고리</Label>
+                            <Select value={category} onValueChange={setCategory}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="카테고리 선택" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="High 1">고1</SelectItem>
+                                    <SelectItem value="High 2">고2</SelectItem>
+                                    <SelectItem value="High 3">고3</SelectItem>
+                                    <SelectItem value="Middle 1">중1</SelectItem>
+                                    <SelectItem value="Middle 2">중2</SelectItem>
+                                    <SelectItem value="Middle 3">중3</SelectItem>
+                                    <SelectItem value="TOEIC">토익</SelectItem>
+                                    <SelectItem value="Other">기타</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

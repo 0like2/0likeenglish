@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { createLesson } from "@/lib/actions/class";
 import { BookOpen } from "lucide-react";
@@ -12,10 +13,11 @@ import { BookOpen } from "lucide-react";
 interface ManageLessonsFormProps {
     classId: string;
     className: string;
+    exams: { id: string; title: string, category: string }[]; // New prop
     onSuccess?: () => void;
 }
 
-export default function ManageLessonsForm({ classId, className, onSuccess }: ManageLessonsFormProps) {
+export default function ManageLessonsForm({ classId, className, exams, onSuccess }: ManageLessonsFormProps) {
     const [formData, setFormData] = useState({
         date: "",
         title: "",
@@ -23,7 +25,8 @@ export default function ManageLessonsForm({ classId, className, onSuccess }: Man
         vocab_hw: "",
         listening_hw: "",
         grammar_hw: "",
-        other_hw: ""
+        other_hw: "",
+        exam_id: "" // New field
     });
 
     const handleSubmit = async () => {
@@ -37,7 +40,8 @@ export default function ManageLessonsForm({ classId, className, onSuccess }: Man
             toast.success("수업 로그가 추가되었습니다.");
             setFormData({
                 date: "", title: "", content: "",
-                vocab_hw: "", listening_hw: "", grammar_hw: "", other_hw: ""
+                vocab_hw: "", listening_hw: "", grammar_hw: "", other_hw: "",
+                exam_id: ""
             });
             if (onSuccess) onSuccess();
         } catch (e: any) {
@@ -108,6 +112,30 @@ export default function ManageLessonsForm({ classId, className, onSuccess }: Man
                             onChange={e => setFormData({ ...formData, listening_hw: e.target.value })}
                         />
                     </div>
+
+                    {/* Mock Exam Attachment */}
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right font-medium text-slate-700">모의고사 질문</Label>
+                        <div className="col-span-3">
+                            <Select
+                                value={formData.exam_id}
+                                onValueChange={(value) => setFormData({ ...formData, exam_id: value === 'none' ? '' : value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="모의고사 선택 (선택사항)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">선택 안 함</SelectItem>
+                                    {exams?.map((exam) => (
+                                        <SelectItem key={exam.id} value={exam.id}>
+                                            [{exam.category}] {exam.title}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label className="text-right font-medium text-slate-700">문법</Label>
                         <Input
@@ -118,10 +146,10 @@ export default function ManageLessonsForm({ classId, className, onSuccess }: Man
                         />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right font-medium text-slate-700">문제풀이</Label>
+                        <Label className="text-right font-medium text-slate-700">기타</Label>
                         <Input
                             className="col-span-3"
-                            placeholder="예: 모의고사 1회 풀기"
+                            placeholder="추가 과제"
                             value={formData.other_hw}
                             onChange={e => setFormData({ ...formData, other_hw: e.target.value })}
                         />

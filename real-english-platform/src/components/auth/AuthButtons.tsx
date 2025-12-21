@@ -1,14 +1,18 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
-import { Chrome } from "lucide-react";
+import { Chrome, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function AuthButtons() {
     const [loading, setLoading] = useState(false);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
     const supabase = createClient();
+    const router = useRouter();
 
     const handleLogin = async (provider: 'google' | 'kakao') => {
         setLoading(true);
@@ -22,6 +26,27 @@ export default function AuthButtons() {
             if (error) throw error;
         } catch (error) {
             toast.error("로그인 중 오류가 발생했습니다.");
+            setLoading(false);
+        }
+    };
+
+    const handleEmailLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!email || !password) {
+            toast.error("이메일과 비밀번호를 입력해주세요.");
+            return;
+        }
+        setLoading(true);
+        try {
+            const { error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+            if (error) throw error;
+            router.refresh();
+            // Auth state change will be handled by middleware or client hook, but for now just refresh/redirect
+        } catch (error: any) {
+            toast.error(error.message || "로그인 실패");
             setLoading(false);
         }
     };
@@ -55,10 +80,38 @@ export default function AuthButtons() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                     <span className="bg-slate-50 px-2 text-slate-500">
-                        또는 이메일로 계속하기 (준비중)
+                        또는 이메일로 계속하기
                     </span>
                 </div>
             </div>
+
+            <form onSubmit={handleEmailLogin} className="space-y-3">
+                <div className="space-y-1">
+                    <Label htmlFor="email">이메일</Label>
+                    <Input
+                        id="email"
+                        type="email"
+                        placeholder="example@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={loading}
+                    />
+                </div>
+                <div className="space-y-1">
+                    <Label htmlFor="password">비밀번호</Label>
+                    <Input
+                        id="password"
+                        type="password"
+                        placeholder="******"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={loading}
+                    />
+                </div>
+                <Button type="submit" className="w-full bg-slate-900" disabled={loading}>
+                    {loading ? "로그인 중..." : "이메일 로그인"}
+                </Button>
+            </form>
         </div>
     );
 }

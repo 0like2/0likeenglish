@@ -5,15 +5,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
 export default async function NewExamPage() {
-    const supabase = await createClient();
-
-    // Fetch classes for dropdown
-    const { data: classes } = await supabase
-        .from('classes')
-        .select('id, name')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
+    // No need to fetch classes for Global Exams
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -28,7 +20,7 @@ export default async function NewExamPage() {
                 </div>
             </div>
 
-            <ExamForm classes={classes || []} />
+            <ExamForm />
         </div>
     );
 }

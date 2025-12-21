@@ -31,9 +31,19 @@ export default async function ClassDetailPage({ params }: PageProps) {
     // Fetch All Logs (Removed limit)
     const { data: lessonLogs } = await supabase
         .from('lesson_plans')
-        .select('*')
+        .select(`
+            *,
+            exams ( title )
+        `)
         .eq('class_id', id)
         .order('date', { ascending: false });
+
+    // Fetch Active Exams
+    const { data: exams } = await supabase
+        .from('exams')
+        .select('id, title, category')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
     const studentCount = classData.class_members?.[0]?.count || 0;
 
@@ -120,6 +130,12 @@ export default async function ClassDetailPage({ params }: PageProps) {
                                                                 <span className="text-slate-800">{log.listening_hw}</span>
                                                             </div>
                                                         )}
+                                                        {log.params?.exam_id || (log.exams as any)?.title && (
+                                                            <div className="flex gap-2 items-start bg-blue-50 p-2 rounded text-blue-900">
+                                                                <span className="font-semibold min-w-[60px]">모의고사:</span>
+                                                                <span>{(log.exams as any)?.title}</span>
+                                                            </div>
+                                                        )}
                                                         {log.grammar_hw && (
                                                             <div className="flex gap-2 items-start">
                                                                 <span className="font-semibold text-slate-600 min-w-[60px]">문법:</span>
@@ -152,7 +168,7 @@ export default async function ClassDetailPage({ params }: PageProps) {
                     <div className="sticky top-24">
                         <Card className="border-blue-200 shadow-md">
                             <CardContent className="pt-6">
-                                <ManageLessonsForm classId={id} className={classData.name} />
+                                <ManageLessonsForm classId={id} className={classData.name} exams={exams || []} />
                             </CardContent>
                         </Card>
                     </div>

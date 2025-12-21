@@ -8,14 +8,11 @@ import { Badge } from "@/components/ui/badge";
 export default async function ExamListPage() {
     const supabase = await createClient();
 
+    // Fetch Global Exams
     const { data: exams, error } = await supabase
-        .from('class_exams')
-        .select(`
-            *,
-            classes (
-                name
-            )
-        `)
+        .from('exams')
+        .select('*')
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
 
     return (
@@ -39,7 +36,7 @@ export default async function ExamListPage() {
                         <CardHeader className="pb-3">
                             <div className="flex justify-between items-start gap-2">
                                 <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200">
-                                    {(exam.classes as any)?.name || '공통'}
+                                    {exam.category || '공통'}
                                 </Badge>
                                 {/* <Badge className="bg-green-100 text-green-700 hover:bg-green-100">진행중</Badge> */}
                             </div>
