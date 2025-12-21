@@ -192,3 +192,231 @@ export async function seedStudents() {
         return { success: false, message: error.message };
     }
 }
+
+// --- Class Management Actions ---
+
+async function syncQuests(supabase: any, classId: string, data: any) {
+    // Helper to sync quests based on settings
+    const quests = [
+        { key: 'quest_vocab_on', title: '영단어 암기', freq: data.quest_frequencies?.vocab || data.quest_frequency || 3 },
+        { key: 'quest_listening_on', title: '듣기평가', freq: data.quest_frequencies?.listening || data.quest_frequency || 3 },
+        { key: 'quest_mock_on', title: '모의고사', freq: data.quest_frequencies?.mock || 1 }
+    ];
+
+    for (const q of quests) {
+        if (data[q.key]) {
+            // Quest should be active. Upsert by class_id + title (assuming title is unique per class)
+            // Since we don't have a unique constraint on (class_id, title) known, we check first.
+            const { data: existing } = await supabase.from('class_quests')
+                .select('id')
+                .eq('class_id', classId)
+                .eq('title', q.title)
+                .single();
+
+            if (existing) {
+                await supabase.from('class_quests').update({
+                    weekly_frequency: q.freq,
+                    is_active: true
+                }).eq('id', existing.id);
+            } else {
+                await supabase.from('class_quests').insert({
+                    class_id: classId,
+                    title: q.title,
+                    weekly_frequency: q.freq,
+                    is_active: true
+                });
+            }
+        } else {
+            // Quest disabled. Deactivate or Delete? Let's Deactivate.
+            const { data: existing } = await supabase.from('class_quests')
+                .select('id')
+                .eq('class_id', classId)
+                .eq('title', q.title)
+                .single();
+
+            if (existing) {
+                await supabase.from('class_quests').update({ is_active: false }).eq('id', existing.id);
+            }
+        }
+    }
+}
+
+export async function createClass(formData: any) {
+    try {
+        const supabase = getAdminClient();
+
+        const { data, error } = await supabase.from('classes').insert({
+            name: formData.name,
+            schedule: formData.schedule,
+            day_of_week: formData.day_of_week,
+            start_time: formData.start_time,
+            end_time: formData.end_time,
+            price: formData.price,
+            quest_vocab_on: formData.quest_vocab_on,
+            quest_listening_on: formData.quest_listening_on,
+            quest_mock_on: formData.quest_mock_on,
+            quest_frequency: formData.quest_frequency,
+            is_active: true
+        }).select().single();
+
+        if (error) throw error;
+
+        // Sync Quests
+        await syncQuests(supabase, data.id, formData);
+
+        revalidatePath('/admin/classes');
+        return { success: true, data };
+    } catch (error: any) {
+        console.error("Create Class Error:", error);
+        return { success: false, message: error.message };
+    }
+}
+
+export async function updateClass(classId: string, data: any) {
+    try {
+        const supabase = getAdminClient();
+
+        // Determine general frequency from granular settings if available
+        let quest_frequency = 3;
+        if (data.quest_frequencies) {
+            quest_frequency = data.quest_frequencies.vocab || data.quest_frequencies.listening || 3;
+        }
+
+        const updateData: any = {
+            name: data.name,
+            schedule: data.schedule,
+            price: data.price,
+            day_of_week: data.day_of_week,
+            start_time: data.start_time,
+            end_time: data.end_time,
+            quest_vocab_on: data.quest_vocab_on,
+            quest_listening_on: data.quest_listening_on,
+            quest_mock_on: data.quest_mock_on,
+        };
+
+        if (data.quest_frequencies) {
+            updateData.quest_frequency = quest_frequency;
+        }
+
+        const { error } = await supabase
+            .from('classes')
+            .update(updateData)
+            .eq('id', classId);
+
+        if (error) throw error;
+
+        // Sync Quests
+        // We need to merge settings into 'data' for syncQuests to work if they are split
+        await syncQuests(supabase, classId, data);
+
+        revalidatePath('/admin/classes');
+        revalidatePath(`/admin/classes/${classId}`);
+        revalidatePath(`/class/${classId}`);
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Update Class Error:", error);
+        throw new Error(error.message);
+    }
+}
+
+export async function deleteClass(classId: string) {
+    try {
+        const supabase = getAdminClient();
+        const { error } = await supabase.from('classes').delete().eq('id', classId);
+
+        if (error) throw error;
+
+        revalidatePath('/admin/classes');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Delete Class Error:", error);
+        throw new Error(error.message);
+    }
+}
+
+export async function getLastQuestSettings(classId: string) {
+    // Helper to get granular settings from class_quests if available
+    // Because 'classes' table only has 1 freq column.
+    return getClassSettings(classId);
+}
+
+export async function getClassSettings(classId: string) {
+    const supabase = await createClient();
+
+    // Fetch from class_quests directly to get granular data!
+    const { data: quests } = await supabase.from('class_quests')
+        .select('*')
+        .eq('class_id', classId);
+
+    const settings = { vocab_freq: 3, listening_freq: 3, mock_freq: 1 };
+
+    if (quests && quests.length > 0) {
+        const vocab = quests.find((q: any) => q.title === '영단어 암기');
+        const listening = quests.find((q: any) => q.title === '듣기평가');
+        const mock = quests.find((q: any) => q.title === '모의고사');
+
+        if (vocab) settings.vocab_freq = vocab.weekly_frequency;
+        if (listening) settings.listening_freq = listening.weekly_frequency;
+        if (mock) settings.mock_freq = mock.weekly_frequency;
+    } else {
+        // Fallback to classes table
+        const { data } = await supabase.from('classes').select('quest_frequency').eq('id', classId).single();
+        if (data) {
+            settings.vocab_freq = data.quest_frequency;
+            settings.listening_freq = data.quest_frequency;
+        }
+    }
+
+    return settings;
+}
+
+export async function assignClass(studentId: string, classId: string) {
+    try {
+        const supabase = getAdminClient();
+        const { error } = await supabase.from('class_members').upsert({
+            user_id: studentId,
+            class_id: classId,
+            status: 'active',
+            joined_at: new Date().toISOString()
+        }, { onConflict: 'user_id,class_id' });
+
+        if (error) throw error;
+
+        revalidatePath('/admin/students');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Assign Class Error:", error);
+        throw new Error(error.message);
+    }
+}
+
+// --- Blog Management Actions ---
+
+export async function createBlogPost(data: {
+    title: string;
+    content: string;
+    category: string;
+    is_published: boolean;
+}) {
+    try {
+        const supabase = getAdminClient();
+
+        const { error } = await supabase.from('blog_posts').insert({
+            title: data.title,
+            content: data.content,
+            category: data.category,
+            is_published: data.is_published,
+            created_at: new Date().toISOString()
+        });
+
+        if (error) throw error;
+
+        revalidatePath('/admin/blog');
+        revalidatePath('/blog');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Create Blog Post Error:", error);
+        return { success: false, message: error.message };
+    }
+}
