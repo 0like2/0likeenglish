@@ -54,11 +54,10 @@ export default async function ExamListPage() {
                             </div>
                         </CardContent>
                         <CardFooter className="pt-3 border-t border-slate-100">
-                            <Button variant="outline" className="w-full" asChild disabled>
-                                {/* Disabled for now until results page is ready, or link to placeholder */}
+                            <Button variant="outline" className="w-full" asChild>
                                 <Link href={`/admin/exams/${exam.id}`}>
                                     <FileBarChart className="mr-2 h-4 w-4 text-slate-500" />
-                                    결과 보기 (준비중)
+                                    결과 보기
                                 </Link>
                             </Button>
                         </CardFooter>
