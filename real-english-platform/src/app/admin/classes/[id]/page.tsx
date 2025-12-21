@@ -195,7 +195,7 @@ export default async function ClassDetailPage({ params }: PageProps) {
                         <div className="sticky top-24">
                             <Card className="border-blue-200 shadow-md">
                                 <CardContent className="pt-6">
-                                    <ManageLessonsForm classId={id} className={classData.name} exams={exams || []} />
+                                    <ManageLessonsForm classId={id} className={classData.name} exams={[]} />
                                 </CardContent>
                             </Card>
                         </div>
