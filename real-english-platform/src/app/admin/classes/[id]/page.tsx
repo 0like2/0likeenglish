@@ -17,19 +17,26 @@ export default async function ClassDetailPage({ params }: PageProps) {
     const { id } = await params;
     const supabase = await createClient();
 
+    console.log(`[ClassDetailPage] Rendering for ID: ${id}`);
+
     // Fetch Class Info
-    const { data: classData, error } = await supabase
+    const { data: classData, error: classError } = await supabase
         .from('classes')
         .select('*, class_members(count)')
         .eq('id', id)
         .single();
 
-    if (error || !classData) {
+    if (classError) {
+        console.error(`[ClassDetailPage] Class Fetch Error:`, classError);
+    }
+
+    if (classError || !classData) {
+        console.error(`[ClassDetailPage] Class Not Found or Error`);
         notFound();
     }
 
     // Fetch All Logs (Removed limit)
-    const { data: lessonLogs } = await supabase
+    const { data: lessonLogs, error: logsError } = await supabase
         .from('lesson_plans')
         .select(`
             *,
@@ -38,12 +45,22 @@ export default async function ClassDetailPage({ params }: PageProps) {
         .eq('class_id', id)
         .order('date', { ascending: false });
 
+    if (logsError) {
+        console.error(`[ClassDetailPage] Logs Fetch Error:`, logsError);
+    } else {
+        console.log(`[ClassDetailPage] Logs Fetched: ${lessonLogs?.length}`);
+    }
+
     // Fetch Active Exams
-    const { data: exams } = await supabase
+    const { data: exams, error: examsError } = await supabase
         .from('exams')
         .select('id, title, category')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
+
+    if (examsError) {
+        console.error(`[ClassDetailPage] Exams Fetch Error:`, examsError);
+    }
 
     const studentCount = classData.class_members?.[0]?.count || 0;
 
@@ -130,12 +147,18 @@ export default async function ClassDetailPage({ params }: PageProps) {
                                                                 <span className="text-slate-800">{log.listening_hw}</span>
                                                             </div>
                                                         )}
-                                                        {log.params?.exam_id || (log.exams as any)?.title && (
-                                                            <div className="flex gap-2 items-start bg-blue-50 p-2 rounded text-blue-900">
-                                                                <span className="font-semibold min-w-[60px]">모의고사:</span>
-                                                                <span>{(log.exams as any)?.title}</span>
-                                                            </div>
-                                                        )}
+                                                        {(() => {
+                                                            const examTitle = Array.isArray(log.exams) ? log.exams[0]?.title : (log.exams as any)?.title;
+                                                            if (log.params?.exam_id || examTitle) {
+                                                                return (
+                                                                    <div className="flex gap-2 items-start bg-blue-50 p-2 rounded text-blue-900">
+                                                                        <span className="font-semibold min-w-[60px]">모의고사:</span>
+                                                                        <span>{examTitle || '제목 없음'}</span>
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })()}
                                                         {log.grammar_hw && (
                                                             <div className="flex gap-2 items-start">
                                                                 <span className="font-semibold text-slate-600 min-w-[60px]">문법:</span>
