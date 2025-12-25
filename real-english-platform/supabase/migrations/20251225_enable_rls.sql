@@ -51,23 +51,34 @@ CREATE POLICY "Users can delete own posts"
 ON public.qna_posts FOR DELETE
 USING (auth.uid() = student_id);
 
+DROP POLICY IF EXISTS "Teachers can view all qna posts" ON public.qna_posts;
+CREATE POLICY "Teachers can view all qna posts"
+ON public.qna_posts FOR SELECT
+USING (
+  (SELECT role FROM public.users WHERE id = auth.uid()) = 'teacher'
+);
 
--- 3. Payments Table (Sensitive)
+
+-- 3. Payments Table
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "Users can view own payments" ON public.payments;
-CREATE POLICY "Users can view own payments"
-ON public.payments FOR SELECT
-USING (student_id = auth.uid());
+CREATE POLICY "Users can view own payments" ON public.payments FOR SELECT USING (student_id = auth.uid());
+
+DROP POLICY IF EXISTS "Teachers can view all payments" ON public.payments;
+CREATE POLICY "Teachers can view all payments" ON public.payments FOR SELECT USING (
+  (SELECT role FROM public.users WHERE id = auth.uid()) = 'teacher'
+);
 
 
--- 4. Class Members (Sensitive)
+-- 4. Class Members
 ALTER TABLE public.class_members ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "Users can view own classes" ON public.class_members;
-CREATE POLICY "Users can view own classes"
-ON public.class_members FOR SELECT
-USING (student_id = auth.uid());
+CREATE POLICY "Users can view own classes" ON public.class_members FOR SELECT USING (student_id = auth.uid());
+
+DROP POLICY IF EXISTS "Teachers can view all class members" ON public.class_members;
+CREATE POLICY "Teachers can view all class members" ON public.class_members FOR SELECT USING (
+  (SELECT role FROM public.users WHERE id = auth.uid()) = 'teacher'
+);
 
 
 -- 5. Student Quest Progress
@@ -87,3 +98,19 @@ DROP POLICY IF EXISTS "Users can insert own quest progress" ON public.student_qu
 CREATE POLICY "Users can insert own quest progress"
 ON public.student_quest_progress FOR INSERT
 WITH CHECK (student_id = auth.uid());
+
+DROP POLICY IF EXISTS "Teachers can view all quest progress" ON public.student_quest_progress;
+CREATE POLICY "Teachers can view all quest progress" ON public.student_quest_progress FOR SELECT USING (
+  (SELECT role FROM public.users WHERE id = auth.uid()) = 'teacher'
+);
+
+
+-- 6. Classes Table (Admin Management)
+ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can view active classes" ON public.classes;
+CREATE POLICY "Public can view active classes" ON public.classes FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Teachers can manage classes" ON public.classes;
+CREATE POLICY "Teachers can manage classes" ON public.classes FOR ALL USING (
+  (SELECT role FROM public.users WHERE id = auth.uid()) = 'teacher'
+);
