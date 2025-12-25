@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -16,7 +16,12 @@ interface PageProps {
 export default async function ClassDetailPage({ params }: PageProps) {
     try {
         const { id } = await params;
-        const supabase = await createClient();
+
+        // Use Service Role to bypass RLS for consistent admin access
+        const supabase = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
 
         console.log(`[ClassDetailPage] Rendering for ID: ${id}`);
 
