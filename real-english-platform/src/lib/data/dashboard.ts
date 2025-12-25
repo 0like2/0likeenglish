@@ -34,9 +34,10 @@ export async function getUserProfile() {
         .single();
 
     return profile || {
+        id: user.id,
         name: user.email?.split('@')[0],
         email: user.email,
-        role: user.email === 'dudfkr236@gmail.com' ? 'teacher' : 'student'
+        role: user.user_metadata?.role || (user.email === 'dudfkr236@gmail.com' ? 'teacher' : 'student')
     };
 }
 
@@ -49,6 +50,8 @@ export async function getPaymentStatus(userId: string) {
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
+
+    if (!payment) return null;
 
     // Default fallback if no payment record found
     return payment || { status: 'active', class_count: 4, amount: 0 };

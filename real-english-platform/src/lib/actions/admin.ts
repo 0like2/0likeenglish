@@ -3,6 +3,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { revalidatePath } from "next/cache";
+import { getUserProfile } from "@/lib/data/dashboard";
+
+async function checkTeacherRole() {
+    const user = await getUserProfile();
+    if (user?.role !== 'teacher') {
+        throw new Error('Unauthorized: Only teachers can perform this action.');
+    }
+}
 
 // Helper to get admin client
 function getAdminClient() {
@@ -18,6 +26,7 @@ function getAdminClient() {
 
 export async function seedBlogPosts() {
     try {
+        await checkTeacherRole();
         const supabase = getAdminClient();
 
         const posts = [
@@ -70,6 +79,7 @@ export async function seedBlogPosts() {
 
 export async function seedStudents() {
     try {
+        await checkTeacherRole();
         const supabase = getAdminClient();
         console.log("🌱 Seeding Students...");
 
@@ -162,11 +172,11 @@ export async function seedStudents() {
             const cid = classMap[enr.className];
             if (uid && cid) {
                 await supabase.from('class_members').upsert({
-                    user_id: uid,
+                    student_id: uid,
                     class_id: cid,
                     status: 'active',
                     joined_at: new Date().toISOString()
-                }, { onConflict: 'user_id,class_id' });
+                }, { onConflict: 'student_id,class_id' });
             }
         }
 
@@ -174,7 +184,7 @@ export async function seedStudents() {
         for (const name of Object.keys(userMap)) {
             const uid = userMap[name];
             await supabase.from('payments').insert({
-                user_id: uid,
+                student_id: uid,
                 amount: 0,
                 status: 'expired',
                 payment_date: new Date('2025-12-18').toISOString(), // Use recent date from screenshot
@@ -243,6 +253,7 @@ async function syncQuests(supabase: any, classId: string, data: any) {
 
 export async function createClass(formData: any) {
     try {
+        await checkTeacherRole();
         const supabase = getAdminClient();
 
         const { data, error } = await supabase.from('classes').insert({
@@ -274,6 +285,7 @@ export async function createClass(formData: any) {
 
 export async function updateClass(classId: string, data: any) {
     try {
+        await checkTeacherRole();
         const supabase = getAdminClient();
 
         // Determine general frequency from granular settings if available
@@ -322,6 +334,7 @@ export async function updateClass(classId: string, data: any) {
 
 export async function deleteClass(classId: string) {
     try {
+        await checkTeacherRole();
         const supabase = getAdminClient();
         const { error } = await supabase.from('classes').delete().eq('id', classId);
 
@@ -373,13 +386,14 @@ export async function getClassSettings(classId: string) {
 
 export async function assignClass(studentId: string, classId: string) {
     try {
+        await checkTeacherRole();
         const supabase = getAdminClient();
         const { error } = await supabase.from('class_members').upsert({
-            user_id: studentId,
+            student_id: studentId,
             class_id: classId,
             status: 'active',
             joined_at: new Date().toISOString()
-        }, { onConflict: 'user_id,class_id' });
+        }, { onConflict: 'student_id,class_id' });
 
         if (error) throw error;
 
@@ -400,6 +414,7 @@ export async function createBlogPost(data: {
     is_published: boolean;
 }) {
     try {
+        await checkTeacherRole();
         const supabase = getAdminClient();
 
         const { error } = await supabase.from('blog_posts').insert({
@@ -417,6 +432,51 @@ export async function createBlogPost(data: {
         return { success: true };
     } catch (error: any) {
         console.error("Create Blog Post Error:", error);
+        return { success: false, message: error.message };
+    }
+}
+export async function updateBlogPost(postId: string, data: {
+    title: string;
+    content: string;
+    category: string;
+    is_published: boolean;
+}) {
+    try {
+        await checkTeacherRole();
+        const supabase = getAdminClient();
+
+        const { error } = await supabase.from('blog_posts').update({
+            title: data.title,
+            content: data.content,
+            category: data.category,
+            is_published: data.is_published,
+            updated_at: new Date().toISOString()
+        }).eq('id', postId);
+
+        if (error) throw error;
+
+        revalidatePath('/admin/blog');
+        revalidatePath('/blog');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Update Blog Post Error:", error);
+        return { success: false, message: error.message };
+    }
+}
+
+export async function deleteBlogPost(postId: string) {
+    try {
+        await checkTeacherRole();
+        const supabase = getAdminClient();
+        const { error } = await supabase.from('blog_posts').delete().eq('id', postId);
+
+        if (error) throw error;
+
+        revalidatePath('/admin/blog');
+        revalidatePath('/blog');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Delete Blog Post Error:", error);
         return { success: false, message: error.message };
     }
 }

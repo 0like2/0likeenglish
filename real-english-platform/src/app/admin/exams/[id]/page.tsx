@@ -11,8 +11,8 @@ export default async function ExamResultPage({ params }: { params: { id: string 
 
     // 1. Fetch Exam Info
     const { data: exam } = await supabase
-        .from('class_exams')
-        .select('*, classes(name)')
+        .from('exams')
+        .select('*')
         .eq('id', params.id)
         .single();
 
@@ -46,7 +46,7 @@ export default async function ExamResultPage({ params }: { params: { id: string 
                 <div>
                     <div className="flex items-center gap-2">
                         <h1 className="text-3xl font-bold tracking-tight text-slate-900">{exam?.title}</h1>
-                        <Badge>{(exam?.classes as any)?.name}</Badge>
+                        {/* <Badge>{(exam?.classes as any)?.name}</Badge> Class relation removed from exams table */}
                     </div>
                     <p className="text-slate-500 mt-1">응시자 {totalStudents}명 • 평균 {avgScore}점</p>
                 </div>

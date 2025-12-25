@@ -49,7 +49,7 @@ export async function getStudentsData() {
             id: s.id,
             name: s.name,
             email: s.email,
-            school: '학교 정보 없음',
+            school: s.school || '학교 정보 없음',
             class: activeClass,
             paymentStatus: recentPayment,
             lastActive: new Date(s.created_at).toLocaleDateString()

@@ -45,8 +45,16 @@ export async function updateSession(request: NextRequest) {
     }
 
     // Protect /admin routes (Teacher only)
-    if (request.nextUrl.pathname.startsWith('/admin') && !user) {
-        return NextResponse.redirect(new URL('/auth/login', request.url))
+    if (request.nextUrl.pathname.startsWith('/admin')) {
+        if (!user) {
+            return NextResponse.redirect(new URL('/auth/login', request.url));
+        }
+
+        // Check role from metadata (assuming it is synced)
+        const role = user.user_metadata?.role;
+        if (role !== 'teacher') {
+            return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
     }
 
     // Optional: Check role for admin routes (If user exists but role is not teacher)

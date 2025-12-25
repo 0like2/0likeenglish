@@ -4,6 +4,7 @@ import { PenTool, Eye, Edit, Trash2, Plus } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { getBlogPostsData } from "@/lib/data/admin";
+import BlogActions from "@/components/admin/BlogActions";
 
 export const dynamic = 'force-dynamic';
 
@@ -41,14 +42,7 @@ export default async function BlogManagementPage() {
                             <span className="text-sm text-slate-400">{post.date} • 조회수 {post.views}</span>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon" className="text-slate-400 hover:text-blue-600">
-                                <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="text-slate-400 hover:text-red-600">
-                                <Trash2 className="w-4 h-4" />
-                            </Button>
-                        </div>
+                        <BlogActions postId={post.id} />
                     </Card>
                 ))}
             </div>
