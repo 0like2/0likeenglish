@@ -7,13 +7,14 @@ CREATE POLICY "Users can view own profile"
 ON public.users FOR SELECT
 USING (auth.uid() = id);
 
--- Policy: Teachers can view all profiles (using role column)
+-- Policy: Teachers can view all profiles (using Metadata to prevent recursion)
 DROP POLICY IF EXISTS "Teachers can view all profiles" ON public.users;
 CREATE POLICY "Teachers can view all profiles"
 ON public.users FOR SELECT
 USING (
-  (SELECT role FROM public.users WHERE id = auth.uid()) = 'teacher'
+  (auth.jwt() -> 'user_metadata' ->> 'role') = 'teacher'
 );
+
 
 -- Policy: Users can update their own profile (optional but good)
 DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
@@ -55,7 +56,7 @@ DROP POLICY IF EXISTS "Teachers can view all qna posts" ON public.qna_posts;
 CREATE POLICY "Teachers can view all qna posts"
 ON public.qna_posts FOR SELECT
 USING (
-  (SELECT role FROM public.users WHERE id = auth.uid()) = 'teacher'
+  (auth.jwt() -> 'user_metadata' ->> 'role') = 'teacher'
 );
 
 
@@ -66,7 +67,7 @@ CREATE POLICY "Users can view own payments" ON public.payments FOR SELECT USING 
 
 DROP POLICY IF EXISTS "Teachers can view all payments" ON public.payments;
 CREATE POLICY "Teachers can view all payments" ON public.payments FOR SELECT USING (
-  (SELECT role FROM public.users WHERE id = auth.uid()) = 'teacher'
+  (auth.jwt() -> 'user_metadata' ->> 'role') = 'teacher'
 );
 
 
@@ -77,7 +78,7 @@ CREATE POLICY "Users can view own classes" ON public.class_members FOR SELECT US
 
 DROP POLICY IF EXISTS "Teachers can view all class members" ON public.class_members;
 CREATE POLICY "Teachers can view all class members" ON public.class_members FOR SELECT USING (
-  (SELECT role FROM public.users WHERE id = auth.uid()) = 'teacher'
+  (auth.jwt() -> 'user_metadata' ->> 'role') = 'teacher'
 );
 
 
@@ -101,7 +102,7 @@ WITH CHECK (student_id = auth.uid());
 
 DROP POLICY IF EXISTS "Teachers can view all quest progress" ON public.student_quest_progress;
 CREATE POLICY "Teachers can view all quest progress" ON public.student_quest_progress FOR SELECT USING (
-  (SELECT role FROM public.users WHERE id = auth.uid()) = 'teacher'
+  (auth.jwt() -> 'user_metadata' ->> 'role') = 'teacher'
 );
 
 
@@ -112,5 +113,5 @@ CREATE POLICY "Public can view active classes" ON public.classes FOR SELECT USIN
 
 DROP POLICY IF EXISTS "Teachers can manage classes" ON public.classes;
 CREATE POLICY "Teachers can manage classes" ON public.classes FOR ALL USING (
-  (SELECT role FROM public.users WHERE id = auth.uid()) = 'teacher'
+  (auth.jwt() -> 'user_metadata' ->> 'role') = 'teacher'
 );
