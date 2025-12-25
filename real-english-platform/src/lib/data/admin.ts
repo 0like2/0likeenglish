@@ -59,7 +59,19 @@ export async function getStudentsData() {
 
 
 export async function getClassesData() {
-    const supabase = await createClient();
+    // Use Service Role to bypass RLS for admin dashboard
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    let supabase;
+
+    if (serviceRoleKey) {
+        supabase = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            serviceRoleKey
+        );
+    } else {
+        supabase = await createClient();
+    }
+
     const { data } = await supabase
         .from('classes')
         .select('*, class_members(count)')
