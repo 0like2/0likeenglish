@@ -21,9 +21,8 @@ const NAV_ITEMS = [
     { label: "학생 관리", href: "/admin/students", icon: Users },
     { label: "수업/반 관리", href: "/admin/classes", icon: BookOpen },
     { label: "모의고사 관리", href: "/admin/exams", icon: ClipboardList },
-    // { label: "듣기 관리", href: "/admin/listening", icon: Headphones }, // TODO: 페이지 구현 후 활성화
+    { label: "듣기 관리", href: "/admin/listening", icon: Headphones },
     { label: "블로그/공지", href: "/admin/blog", icon: PenTool },
-    // { label: "설정", href: "/admin/settings", icon: Settings }, // TODO: 페이지 구현 후 활성화
 ];
 
 export default function AdminSidebar() {
