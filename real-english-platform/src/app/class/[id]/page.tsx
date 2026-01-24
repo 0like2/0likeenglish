@@ -54,7 +54,7 @@ export default async function ClassHomePage({ params }: PageProps) {
                     </div>
                 </div>
 
-                {/* 1. Daily Quests (Weekly) */}
+                {/* 1. Weekly Quests */}
                 <section className="space-y-4">
                     <h2 className="text-lg font-bold flex items-center gap-2">
                         <CheckCircle2 className="w-5 h-5 text-blue-600" />
@@ -76,7 +76,7 @@ export default async function ClassHomePage({ params }: PageProps) {
                                         <div className="flex-1 space-y-2">
                                             <div className="flex items-center gap-2">
                                                 <Badge variant="outline" className="bg-white">
-                                                    {quest.type}
+                                                    {quest.type || quest.title}
                                                 </Badge>
                                                 {isDone && (
                                                     <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none">
@@ -92,16 +92,17 @@ export default async function ClassHomePage({ params }: PageProps) {
                                             <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden max-w-[200px]">
                                                 <div
                                                     className={cn("h-full transition-all", isDone ? "bg-green-500" : "bg-blue-500")}
-                                                    style={{ width: `${Math.min((current / target) * 100, 100)}% ` }}
+                                                    style={{ width: `${Math.min((current / target) * 100, 100)}%` }}
                                                 />
                                             </div>
                                             <p className="text-xs text-slate-400">
                                                 {current} / {target}회 완료
                                             </p>
                                         </div>
-                                        <div className="sm:w-40 flex-shrink-0">
+                                        <div className="sm:w-44 flex-shrink-0">
                                             <QuestSubmission
                                                 questId={quest.id}
+                                                questType={quest.type || quest.title}
                                                 currentCount={current}
                                                 targetCount={target}
                                                 isCompleted={isDone}
@@ -114,7 +115,7 @@ export default async function ClassHomePage({ params }: PageProps) {
                     )}
                 </section>
 
-                {/* 2. Lesson Log (Notion Style) */}
+                {/* 2. Lesson Log */}
                 <section className="space-y-4 pt-4 border-t border-slate-200">
                     <h2 className="text-lg font-bold flex items-center gap-2">
                         <FileText className="w-5 h-5 text-slate-700" />
