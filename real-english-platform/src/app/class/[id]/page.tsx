@@ -3,7 +3,7 @@ import { getQuestProgress, getUserProfile } from "@/lib/data/dashboard";
 import { getClassLessons, getStudentLessonChecks, getClassDetails } from "@/lib/data/class";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, ArrowLeft, Calendar, FileText } from "lucide-react";
+import { CheckCircle2, ArrowLeft, Calendar, FileText, BookOpen, Headphones, PenTool, ClipboardCheck, Send } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import QuestSubmission from "@/components/class/QuestSubmission";
@@ -34,6 +34,27 @@ export default async function ClassHomePage({ params }: PageProps) {
     const totalDone = quests.reduce((acc, q) => acc + Math.min((q.current_count || 0), (q.weekly_frequency || 1)), 0);
     const totalPercent = totalGoal > 0 ? Math.round((totalDone / totalGoal) * 100) : 0;
 
+    // Get most recent lesson for homework content display
+    const mostRecentLesson = lessons.length > 0 ? lessons[0] : null;
+
+    // Helper function to get quest icon and color
+    const getQuestStyle = (questType: string) => {
+        const type = questType?.toLowerCase() || '';
+        if (type.includes('단어') || type.includes('vocab')) {
+            return { icon: BookOpen, color: 'text-red-500', bgColor: 'bg-red-50', borderColor: 'border-red-200' };
+        }
+        if (type.includes('듣기') || type.includes('listen')) {
+            return { icon: Headphones, color: 'text-purple-500', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' };
+        }
+        if (type.includes('모의') || type.includes('mock') || type.includes('exam')) {
+            return { icon: ClipboardCheck, color: 'text-blue-500', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' };
+        }
+        if (type.includes('문법') || type.includes('grammar')) {
+            return { icon: PenTool, color: 'text-indigo-500', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-200' };
+        }
+        return { icon: CheckCircle2, color: 'text-slate-500', bgColor: 'bg-slate-50', borderColor: 'border-slate-200' };
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 py-8 px-4 pb-20">
             <div className="max-w-3xl mx-auto space-y-8">
@@ -54,52 +75,128 @@ export default async function ClassHomePage({ params }: PageProps) {
                     </div>
                 </div>
 
-                {/* 1. Weekly Quests */}
+                {/* 1. 금주의 퀘스트 - Shows homework content from lesson log */}
                 <section className="space-y-4">
                     <h2 className="text-lg font-bold flex items-center gap-2">
                         <CheckCircle2 className="w-5 h-5 text-blue-600" />
                         금주의 퀘스트 (Weekly Quest)
                     </h2>
+
+                    {!mostRecentLesson ? (
+                        <div className="text-center py-8 bg-white rounded-xl border border-dashed border-slate-200">
+                            <p className="text-slate-400">등록된 숙제가 없습니다.</p>
+                        </div>
+                    ) : (
+                        <Card className="border bg-white">
+                            <div className="p-4 sm:p-6 space-y-4">
+                                <div className="flex items-center gap-2 text-sm text-slate-500">
+                                    <Calendar className="w-4 h-4" />
+                                    <span>{mostRecentLesson.date} 수업 기준</span>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {mostRecentLesson.vocab_hw && (
+                                        <div className="flex items-start gap-3 p-3 bg-red-50 rounded-lg border border-red-100">
+                                            <BookOpen className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                                            <div>
+                                                <p className="text-sm font-medium text-red-700">단어 (Vocabulary)</p>
+                                                <p className="text-sm text-slate-700">{mostRecentLesson.vocab_hw}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {mostRecentLesson.listening_hw && (
+                                        <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                                            <Headphones className="w-5 h-5 text-purple-500 mt-0.5 flex-shrink-0" />
+                                            <div>
+                                                <p className="text-sm font-medium text-purple-700">듣기 (Listening)</p>
+                                                <p className="text-sm text-slate-700">{mostRecentLesson.listening_hw}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {mostRecentLesson.grammar_hw && (
+                                        <div className="flex items-start gap-3 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                                            <PenTool className="w-5 h-5 text-indigo-500 mt-0.5 flex-shrink-0" />
+                                            <div>
+                                                <p className="text-sm font-medium text-indigo-700">문법 (Grammar)</p>
+                                                <p className="text-sm text-slate-700">{mostRecentLesson.grammar_hw}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {mostRecentLesson.other_hw && (
+                                        <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                            <FileText className="w-5 h-5 text-slate-500 mt-0.5 flex-shrink-0" />
+                                            <div>
+                                                <p className="text-sm font-medium text-slate-700">기타 (Other)</p>
+                                                <p className="text-sm text-slate-700">{mostRecentLesson.other_hw}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {!mostRecentLesson.vocab_hw && !mostRecentLesson.listening_hw &&
+                                 !mostRecentLesson.grammar_hw && !mostRecentLesson.other_hw && (
+                                    <p className="text-slate-400 text-center py-4">이번 주 숙제 내용이 없습니다.</p>
+                                )}
+                            </div>
+                        </Card>
+                    )}
+                </section>
+
+                {/* 2. 숙제 제출하기 - Submission buttons with progress */}
+                <section className="space-y-4">
+                    <h2 className="text-lg font-bold flex items-center gap-2">
+                        <Send className="w-5 h-5 text-green-600" />
+                        숙제 제출하기
+                    </h2>
+
                     {quests.length === 0 ? (
                         <div className="text-center py-8 bg-white rounded-xl border border-dashed border-slate-200">
                             <p className="text-slate-400">등록된 퀘스트가 없습니다.</p>
                         </div>
                     ) : (
-                        quests.map((quest) => {
-                            const current = quest.current_count || 0;
-                            const target = quest.weekly_frequency || 1;
-                            const isDone = current >= target;
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {quests.map((quest) => {
+                                const current = quest.current_count || 0;
+                                const target = quest.weekly_frequency || 1;
+                                const isDone = current >= target;
+                                const style = getQuestStyle(quest.type || quest.title);
+                                const IconComponent = style.icon;
 
-                            return (
-                                <Card key={quest.id} className={cn("border transition-all", isDone ? "bg-slate-50 border-slate-200" : "bg-white border-blue-100 shadow-sm")}>
-                                    <div className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
-                                        <div className="flex-1 space-y-2">
-                                            <div className="flex items-center gap-2">
-                                                <Badge variant="outline" className="bg-white">
-                                                    {quest.type || quest.title}
-                                                </Badge>
+                                return (
+                                    <Card key={quest.id} className={cn(
+                                        "border transition-all overflow-hidden",
+                                        isDone ? "bg-green-50 border-green-200" : `${style.bgColor} ${style.borderColor}`
+                                    )}>
+                                        <div className="p-4 space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <IconComponent className={cn("w-5 h-5", isDone ? "text-green-600" : style.color)} />
+                                                    <h3 className={cn(
+                                                        "font-bold",
+                                                        isDone ? "text-green-700" : "text-slate-900"
+                                                    )}>
+                                                        {quest.title}
+                                                    </h3>
+                                                </div>
                                                 {isDone && (
-                                                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none">
+                                                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none text-xs">
                                                         완료
                                                     </Badge>
                                                 )}
                                             </div>
-                                            <div>
-                                                <h3 className={cn("text-lg font-bold", isDone ? "text-slate-500 line-through" : "text-slate-900")}>
-                                                    {quest.title}
-                                                </h3>
+
+                                            <div className="space-y-1">
+                                                <div className="w-full h-2 bg-white/50 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={cn("h-full transition-all", isDone ? "bg-green-500" : "bg-blue-500")}
+                                                        style={{ width: `${Math.min((current / target) * 100, 100)}%` }}
+                                                    />
+                                                </div>
+                                                <p className="text-xs text-slate-500">
+                                                    {current} / {target}회 완료
+                                                </p>
                                             </div>
-                                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden max-w-[200px]">
-                                                <div
-                                                    className={cn("h-full transition-all", isDone ? "bg-green-500" : "bg-blue-500")}
-                                                    style={{ width: `${Math.min((current / target) * 100, 100)}%` }}
-                                                />
-                                            </div>
-                                            <p className="text-xs text-slate-400">
-                                                {current} / {target}회 완료
-                                            </p>
-                                        </div>
-                                        <div className="sm:w-44 flex-shrink-0">
+
                                             <QuestSubmission
                                                 questId={quest.id}
                                                 questType={quest.type || quest.title}
@@ -108,14 +205,14 @@ export default async function ClassHomePage({ params }: PageProps) {
                                                 isCompleted={isDone}
                                             />
                                         </div>
-                                    </div>
-                                </Card>
-                            );
-                        })
+                                    </Card>
+                                );
+                            })}
+                        </div>
                     )}
                 </section>
 
-                {/* 2. Lesson Log */}
+                {/* 3. Lesson Log */}
                 <section className="space-y-4 pt-4 border-t border-slate-200">
                     <h2 className="text-lg font-bold flex items-center gap-2">
                         <FileText className="w-5 h-5 text-slate-700" />

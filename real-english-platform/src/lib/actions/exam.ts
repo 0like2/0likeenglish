@@ -166,3 +166,15 @@ export async function getExamResults(examId: string) {
 
     return submissions;
 }
+
+// Get available exams for students
+export async function getAvailableExams() {
+    const supabase = await createClient();
+    const { data: exams } = await supabase
+        .from('exams')
+        .select('id, title, category')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+    return exams || [];
+}
