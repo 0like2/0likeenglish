@@ -3,7 +3,7 @@ import { getQuestProgress, getUserProfile } from "@/lib/data/dashboard";
 import { getClassLessons, getStudentLessonChecks, getClassDetails } from "@/lib/data/class";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, Circle, ArrowLeft, Calendar, FileText, BookOpen, Headphones, PenTool } from "lucide-react";
+import { CheckCircle2, ArrowLeft, Calendar, FileText } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import QuestSubmission from "@/components/class/QuestSubmission";
@@ -161,7 +161,7 @@ export default async function ClassHomePage({ params }: PageProps) {
                                                         content={lesson.vocab_hw}
                                                         status={check?.vocab_status || 'none'}
                                                         iconColor="text-red-500"
-                                                        Icon={BookOpen}
+                                                        iconType="BookOpen"
                                                     />
                                                 )}
                                                 {lesson.listening_hw && (
@@ -172,7 +172,7 @@ export default async function ClassHomePage({ params }: PageProps) {
                                                         content={lesson.listening_hw}
                                                         status={check?.listening_status || 'none'}
                                                         iconColor="text-purple-500"
-                                                        Icon={Headphones}
+                                                        iconType="Headphones"
                                                     />
                                                 )}
                                                 {lesson.grammar_hw && (
@@ -183,7 +183,7 @@ export default async function ClassHomePage({ params }: PageProps) {
                                                         content={lesson.grammar_hw}
                                                         status={check?.grammar_status || 'none'}
                                                         iconColor="text-indigo-500"
-                                                        Icon={PenTool}
+                                                        iconType="PenTool"
                                                     />
                                                 )}
                                                 {lesson.other_hw && (
@@ -194,7 +194,7 @@ export default async function ClassHomePage({ params }: PageProps) {
                                                         content={lesson.other_hw}
                                                         status={check?.other_status || 'none'}
                                                         iconColor="text-slate-500"
-                                                        Icon={CheckCircle2}
+                                                        iconType="CheckCircle2"
                                                     />
                                                 )}
                                             </div>

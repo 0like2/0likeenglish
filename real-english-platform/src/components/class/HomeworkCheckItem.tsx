@@ -2,10 +2,17 @@
 
 import { useTransition } from "react";
 import { toggleLessonCheck } from "@/lib/actions/check";
-import { Circle, Triangle, X, Minus } from "lucide-react";
+import { Circle, Triangle, X, BookOpen, Headphones, PenTool, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+// Icon type mapping - Server Component에서 문자열로 전달받아 여기서 아이콘 선택
+const IconMap: Record<string, React.ElementType> = {
+    BookOpen,
+    Headphones,
+    PenTool,
+    CheckCircle2,
+};
 
 interface HomeworkCheckItemProps {
     lessonId: string;
@@ -14,13 +21,14 @@ interface HomeworkCheckItemProps {
     content: string;
     status: string; // 'none' | 'done' | 'ambiguous' | 'failed'
     iconColor: string;
-    Icon: React.ElementType;
+    iconType: string; // 'BookOpen' | 'Headphones' | 'PenTool' | 'CheckCircle2'
 }
 
 export default function HomeworkCheckItem({
-    lessonId, field, label, content, status, iconColor, Icon
+    lessonId, field, label, content, status, iconColor, iconType
 }: HomeworkCheckItemProps) {
     const [isPending, startTransition] = useTransition();
+    const Icon = IconMap[iconType] || CheckCircle2;
 
     const handleToggle = () => {
         startTransition(async () => {
