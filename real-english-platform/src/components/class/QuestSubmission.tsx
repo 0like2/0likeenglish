@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -57,6 +58,7 @@ export default function QuestSubmission({
     targetCount,
     isCompleted
 }: QuestSubmissionProps) {
+    const router = useRouter();
     const [uploading, setUploading] = useState(false);
 
     // Listening state
@@ -147,6 +149,7 @@ export default function QuestSubmission({
 
             await submitQuestProof(questId, publicUrl);
             toast.success("인증 완료! 횟수가 추가되었습니다.");
+            router.refresh(); // 화면 새로고침
 
         } catch (error) {
             console.error(error);
@@ -200,12 +203,14 @@ export default function QuestSubmission({
     };
 
     const closeListeningDialog = () => {
+        const hadResult = !!listeningResult;
         setShowListeningDialog(false);
         setShowListeningOMR(false);
         setSelectedBook("");
         setSelectedRound("");
         setListeningAnswers(new Array(27).fill(0));
         setListeningResult(null);
+        if (hadResult) router.refresh(); // 채점 완료 후 화면 새로고침
     };
 
     // Mock Exam OMR - simple 0-44 index mapping
@@ -244,11 +249,13 @@ export default function QuestSubmission({
     };
 
     const closeMockExamDialog = () => {
+        const hadResult = !!mockExamResult;
         setShowMockExamDialog(false);
         setShowMockExamOMR(false);
         setSelectedExam("");
         setMockExamAnswers(new Array(45).fill(0));
         setMockExamResult(null);
+        if (hadResult) router.refresh(); // 채점 완료 후 화면 새로고침
     };
 
     // Completed state
