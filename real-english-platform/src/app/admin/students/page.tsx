@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import AssignClassDialog from "@/components/admin/AssignClassDialog";
+import PaymentManageDialog from "@/components/admin/PaymentManageDialog";
 import { getStudentsData, getClassesData } from "@/lib/data/admin";
 import StudentListFilters from "@/components/admin/StudentListFilters";
 
@@ -72,11 +73,13 @@ export default async function StudentManagementPage() {
                                                 <AssignClassDialog
                                                     studentName={student.name}
                                                     studentId={student.id}
-                                                    classes={classes} // Pass fetched classes
+                                                    classes={classes}
                                                 />
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <MoreHorizontal className="w-4 h-4" />
-                                                </Button>
+                                                <PaymentManageDialog
+                                                    studentId={student.id}
+                                                    studentName={student.name}
+                                                    currentStatus={student.paymentStatus}
+                                                />
                                             </td>
                                         </tr>
                                     ))

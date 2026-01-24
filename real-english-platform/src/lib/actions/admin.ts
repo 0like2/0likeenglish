@@ -480,3 +480,83 @@ export async function deleteBlogPost(postId: string) {
         return { success: false, message: error.message };
     }
 }
+
+// --- Payment Management Actions ---
+
+export async function updatePayment(studentId: string, data: {
+    class_count: number;
+    status: 'active' | 'pending' | 'expired';
+    expiry_date?: string;
+    amount?: number;
+    method?: string;
+}) {
+    try {
+        await checkTeacherRole();
+        const supabase = getAdminClient();
+
+        // Check if payment record exists
+        const { data: existing } = await supabase
+            .from('payments')
+            .select('id')
+            .eq('student_id', studentId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (existing) {
+            // Update existing payment
+            const { error } = await supabase
+                .from('payments')
+                .update({
+                    class_count: data.class_count,
+                    status: data.status,
+                    expiry_date: data.expiry_date,
+                    amount: data.amount || 0,
+                    method: data.method || 'card',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', existing.id);
+
+            if (error) throw error;
+        } else {
+            // Create new payment record
+            const { error } = await supabase
+                .from('payments')
+                .insert({
+                    student_id: studentId,
+                    class_count: data.class_count,
+                    status: data.status,
+                    expiry_date: data.expiry_date,
+                    amount: data.amount || 0,
+                    method: data.method || 'card',
+                    payment_date: new Date().toISOString()
+                });
+
+            if (error) throw error;
+        }
+
+        revalidatePath('/admin/students');
+        revalidatePath('/dashboard');
+        return { success: true, message: "수강권 정보가 업데이트되었습니다." };
+    } catch (error: any) {
+        console.error("Update Payment Error:", error);
+        return { success: false, message: error.message };
+    }
+}
+
+export async function getStudentPayment(studentId: string) {
+    try {
+        const supabase = getAdminClient();
+        const { data } = await supabase
+            .from('payments')
+            .select('*')
+            .eq('student_id', studentId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        return data || null;
+    } catch (error) {
+        return null;
+    }
+}
