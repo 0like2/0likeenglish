@@ -34,10 +34,31 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    // Validate session
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    // Validate session - handle auth errors gracefully
+    let user = null;
+    try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) {
+            console.error('[Middleware] Auth error:', error.message);
+            // Clear invalid session and redirect to login for protected routes
+            if (request.nextUrl.pathname.startsWith('/dashboard') ||
+                request.nextUrl.pathname.startsWith('/admin')) {
+                const redirectUrl = new URL('/auth/login', request.url);
+                const redirectResponse = NextResponse.redirect(redirectUrl);
+                // Clear auth cookies
+                redirectResponse.cookies.delete('sb-uzpjzwawhgflpxogkswe-auth-token');
+                return redirectResponse;
+            }
+        }
+        user = data?.user;
+    } catch (authError) {
+        console.error('[Middleware] Auth exception:', authError);
+        // On auth exception, redirect to login for protected routes
+        if (request.nextUrl.pathname.startsWith('/dashboard') ||
+            request.nextUrl.pathname.startsWith('/admin')) {
+            return NextResponse.redirect(new URL('/auth/login', request.url));
+        }
+    }
 
     // Protect /dashboard routes (Student + Teacher)
     if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
@@ -56,9 +77,6 @@ export async function updateSession(request: NextRequest) {
             return NextResponse.redirect(new URL('/dashboard', request.url));
         }
     }
-
-    // Optional: Check role for admin routes (If user exists but role is not teacher)
-    // This requires fetching public.users table. For now, we trust basic auth + will implement RBAC later.
 
     return response
 }

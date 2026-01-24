@@ -5,6 +5,9 @@ import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
 export async function createLesson(classId: string, formData: any) {
+    console.log("[createLesson] Starting with classId:", classId);
+    console.log("[createLesson] FormData:", JSON.stringify(formData, null, 2));
+
     // Use Service Role Client for DB operations to bypass RLS
     const adminSupabase = createAdminClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,9 +16,14 @@ export async function createLesson(classId: string, formData: any) {
 
     // Use standard client for Auth only
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    console.log("Debug: createLesson called by:", user?.email);
+    if (authError) {
+        console.error("[createLesson] Auth Error:", authError);
+        throw new Error("Authentication failed");
+    }
+
+    console.log("[createLesson] User:", user?.email);
 
     if (!user) throw new Error("Unauthorized");
 
@@ -23,33 +31,51 @@ export async function createLesson(classId: string, formData: any) {
     const userRole = user.user_metadata?.role;
 
     if (userRole !== 'teacher' && user.email !== 'dudfkr236@gmail.com') {
-        console.error("Debug: Permission Denied. Role:", userRole, "Email:", user.email);
+        console.error("[createLesson] Permission Denied. Role:", userRole, "Email:", user.email);
         throw new Error("Only teachers can create lessons");
     }
 
+    // Prepare insert data - ensure exam_id is null if empty
+    const insertData = {
+        class_id: classId,
+        title: formData.title,
+        date: formData.date,
+        content: formData.content || null,
+        vocab_hw: formData.vocab_hw || null,
+        listening_hw: formData.listening_hw || null,
+        grammar_hw: formData.grammar_hw || null,
+        other_hw: formData.other_hw || null,
+        exam_id: formData.exam_id && formData.exam_id !== '' ? formData.exam_id : null,
+        status: 'upcoming'
+    };
+
+    console.log("[createLesson] Insert data:", JSON.stringify(insertData, null, 2));
+
     // Insert using Admin Client
-    const { error } = await adminSupabase
+    const { data, error } = await adminSupabase
         .from('lesson_plans')
-        .insert({
-            class_id: classId,
-            title: formData.title,
-            date: formData.date, // YYYY-MM-DD
-            content: formData.content, // Main note
-            vocab_hw: formData.vocab_hw,
-            listening_hw: formData.listening_hw,
-            grammar_hw: formData.grammar_hw,
-            other_hw: formData.other_hw,
-            exam_id: formData.exam_id || null, // Link exam if selected
-            status: 'upcoming'
-        });
+        .insert(insertData)
+        .select();
 
     if (error) {
-        console.error("Debug: Database Insert Error:", error);
-        throw new Error(error.message);
+        console.error("[createLesson] Database Insert Error:", error);
+        throw new Error(`Database error: ${error.message}`);
     }
-    revalidatePath(`/class/${classId}`);
-    revalidatePath(`/admin/classes`);
-    revalidatePath(`/admin/classes/${classId}`);
+
+    console.log("[createLesson] Insert success:", data);
+
+    // Revalidate paths
+    try {
+        revalidatePath(`/class/${classId}`);
+        revalidatePath(`/admin/classes`);
+        revalidatePath(`/admin/classes/${classId}`);
+        console.log("[createLesson] Revalidation complete");
+    } catch (revalidateError) {
+        console.error("[createLesson] Revalidation error:", revalidateError);
+        // Don't throw here - insert was successful
+    }
+
+    return { success: true, data };
 }
 
 export async function deleteLesson(lessonId: string, classId: string) {
