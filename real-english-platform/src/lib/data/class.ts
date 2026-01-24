@@ -4,7 +4,10 @@ export async function getClassLessons(classId: string) {
     const supabase = await createClient();
     const { data, error } = await supabase
         .from('lesson_plans')
-        .select('*')
+        .select(`
+            *,
+            exams (id, title, category)
+        `)
         .eq('class_id', classId)
         .order('date', { ascending: false });
 

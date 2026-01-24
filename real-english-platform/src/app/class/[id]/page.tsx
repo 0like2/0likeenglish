@@ -131,10 +131,19 @@ export default async function ClassHomePage({ params }: PageProps) {
                                             </div>
                                         </div>
                                     )}
+                                    {mostRecentLesson.exams && (
+                                        <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                            <ClipboardCheck className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                                            <div>
+                                                <p className="text-sm font-medium text-blue-700">모의고사 (Mock Exam)</p>
+                                                <p className="text-sm text-slate-700">[{mostRecentLesson.exams.category}] {mostRecentLesson.exams.title}</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {!mostRecentLesson.vocab_hw && !mostRecentLesson.listening_hw &&
-                                 !mostRecentLesson.grammar_hw && !mostRecentLesson.other_hw && (
+                                 !mostRecentLesson.grammar_hw && !mostRecentLesson.other_hw && !mostRecentLesson.exams && (
                                     <p className="text-slate-400 text-center py-4">이번 주 숙제 내용이 없습니다.</p>
                                 )}
                             </div>
