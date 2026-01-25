@@ -388,14 +388,32 @@ export async function assignClass(studentId: string, classId: string) {
     try {
         await checkTeacherRole();
         const supabase = getAdminClient();
-        const { error } = await supabase.from('class_members').upsert({
-            student_id: studentId,
-            class_id: classId,
-            status: 'active',
-            joined_at: new Date().toISOString()
-        }, { onConflict: 'student_id,class_id' });
 
-        if (error) throw error;
+        // 기존 레코드 확인
+        const { data: existing } = await supabase
+            .from('class_members')
+            .select('id')
+            .eq('student_id', studentId)
+            .eq('class_id', classId)
+            .single();
+
+        if (existing) {
+            // 기존 레코드가 있으면 status를 active로 업데이트
+            const { error } = await supabase
+                .from('class_members')
+                .update({ status: 'active', joined_at: new Date().toISOString() })
+                .eq('id', existing.id);
+            if (error) throw error;
+        } else {
+            // 새 레코드 추가
+            const { error } = await supabase.from('class_members').insert({
+                student_id: studentId,
+                class_id: classId,
+                status: 'active',
+                joined_at: new Date().toISOString()
+            });
+            if (error) throw error;
+        }
 
         revalidatePath('/admin/students');
         return { success: true };

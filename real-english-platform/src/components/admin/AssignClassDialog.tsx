@@ -45,8 +45,9 @@ export default function AssignClassDialog({ studentName, studentId, classes }: A
             toast.success(`${studentName} 학생을 '${className}'에 배정했습니다.`);
             setOpen(false);
             setSelectedClass("");
-        } catch (e) {
-            toast.error("반 배정 중 오류가 발생했습니다.");
+        } catch (e: any) {
+            console.error("AssignClass Error:", e);
+            toast.error(`반 배정 중 오류가 발생했습니다: ${e.message || '알 수 없는 오류'}`);
         }
     };
 
