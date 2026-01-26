@@ -689,3 +689,172 @@ export async function getStudentPayment(studentId: string) {
         return null;
     }
 }
+
+// --- Submission Management Actions ---
+
+export async function getAllSubmissions() {
+    try {
+        await checkTeacherRole();
+        const supabase = getAdminClient();
+
+        // 1. Get listening submissions
+        const { data: listeningData } = await supabase
+            .from('listening_submissions')
+            .select(`
+                id,
+                student_id,
+                round_id,
+                score,
+                correct_count,
+                total_count,
+                created_at,
+                users!listening_submissions_student_id_fkey(name, email),
+                listening_rounds!listening_submissions_round_id_fkey(round_number, title, listening_books(name))
+            `)
+            .order('created_at', { ascending: false })
+            .limit(100);
+
+        // 2. Get easy submissions
+        const { data: easyData } = await supabase
+            .from('easy_submissions')
+            .select(`
+                id,
+                student_id,
+                round_id,
+                score,
+                correct_count,
+                total_count,
+                created_at,
+                users!easy_submissions_student_id_fkey(name, email),
+                easy_rounds!easy_submissions_round_id_fkey(round_number, title, easy_books(name))
+            `)
+            .order('created_at', { ascending: false })
+            .limit(100);
+
+        // 3. Get quest progress (photo submissions)
+        const { data: questData } = await supabase
+            .from('student_quest_progress')
+            .select(`
+                id,
+                student_id,
+                quest_id,
+                current_count,
+                last_proof_image_url,
+                last_submitted_at,
+                status,
+                users!student_quest_progress_student_id_fkey(name, email),
+                class_quests!student_quest_progress_quest_id_fkey(title, classes(name))
+            `)
+            .not('last_submitted_at', 'is', null)
+            .order('last_submitted_at', { ascending: false })
+            .limit(100);
+
+        // Format listening submissions
+        const listening = (listeningData || []).map((s: any) => ({
+            id: s.id,
+            type: 'listening' as const,
+            studentName: s.users?.name || '알 수 없음',
+            studentEmail: s.users?.email || '',
+            title: `${s.listening_rounds?.listening_books?.name || ''} ${s.listening_rounds?.round_number || ''}회`,
+            score: s.score,
+            detail: `${s.correct_count}/${s.total_count}`,
+            createdAt: s.created_at
+        }));
+
+        // Format easy submissions
+        const easy = (easyData || []).map((s: any) => ({
+            id: s.id,
+            type: 'easy' as const,
+            studentName: s.users?.name || '알 수 없음',
+            studentEmail: s.users?.email || '',
+            title: `${s.easy_rounds?.easy_books?.name || ''} ${s.easy_rounds?.round_number || ''}회`,
+            score: s.score,
+            detail: `${s.correct_count}/${s.total_count}`,
+            createdAt: s.created_at
+        }));
+
+        // Format quest submissions
+        const quest = (questData || []).map((s: any) => ({
+            id: s.id,
+            type: 'quest' as const,
+            studentName: s.users?.name || '알 수 없음',
+            studentEmail: s.users?.email || '',
+            title: s.class_quests?.title || '숙제',
+            className: s.class_quests?.classes?.name || '',
+            imageUrl: s.last_proof_image_url,
+            count: s.current_count,
+            status: s.status,
+            createdAt: s.last_submitted_at
+        }));
+
+        return { listening, easy, quest };
+    } catch (error: any) {
+        console.error('Get All Submissions Error:', error);
+        return { listening: [], easy: [], quest: [] };
+    }
+}
+
+export async function deleteSubmission(type: 'listening' | 'easy' | 'quest', id: string) {
+    try {
+        await checkTeacherRole();
+        const supabase = getAdminClient();
+
+        let tableName = '';
+        switch (type) {
+            case 'listening':
+                tableName = 'listening_submissions';
+                break;
+            case 'easy':
+                tableName = 'easy_submissions';
+                break;
+            case 'quest':
+                tableName = 'student_quest_progress';
+                break;
+        }
+
+        const { error } = await supabase
+            .from(tableName)
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Delete Submission Error:', error);
+            return { success: false, message: error.message };
+        }
+
+        revalidatePath('/admin/submissions');
+        return { success: true, message: "제출 기록이 삭제되었습니다." };
+    } catch (error: any) {
+        console.error('Delete Submission Error:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+export async function resetQuestProgress(id: string) {
+    try {
+        await checkTeacherRole();
+        const supabase = getAdminClient();
+
+        // Reset the quest progress instead of deleting
+        const { error } = await supabase
+            .from('student_quest_progress')
+            .update({
+                current_count: 0,
+                last_proof_image_url: null,
+                last_submitted_at: null,
+                status: 'in_progress'
+            })
+            .eq('id', id);
+
+        if (error) {
+            console.error('Reset Quest Progress Error:', error);
+            return { success: false, message: error.message };
+        }
+
+        revalidatePath('/admin/submissions');
+        return { success: true, message: "숙제 진행 상황이 초기화되었습니다." };
+    } catch (error: any) {
+        console.error('Reset Quest Progress Error:', error);
+        return { success: false, message: error.message };
+    }
+}
