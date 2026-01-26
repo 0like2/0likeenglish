@@ -12,7 +12,7 @@ interface LearningPathProps {
 
 export default function LearningPath({ quests = [] }: LearningPathProps) {
     return (
-        <Card className="shadow-sm border-slate-100 col-span-1 md:col-span-2">
+        <Card className="shadow-sm border-slate-100">
             <CardHeader>
                 <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
                     📝 이번 주 학습 퀘스트
