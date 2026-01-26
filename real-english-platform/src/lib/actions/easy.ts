@@ -122,6 +122,44 @@ export async function createEasyRound(data: {
     return { success: true, message: "회차가 등록되었습니다." };
 }
 
+export async function deleteEasyBook(bookId: string) {
+    const supabase = getAdminClient();
+
+    // Soft delete by setting is_active to false
+    const { error } = await supabase
+        .from('easy_books')
+        .update({ is_active: false })
+        .eq('id', bookId);
+
+    if (error) {
+        console.error("Delete Easy Book Error:", error);
+        return { success: false, message: error.message };
+    }
+
+    revalidatePath('/admin/easy');
+    return { success: true, message: "교재가 삭제되었습니다." };
+}
+
+export async function deleteEasyRound(roundId: string, bookId: string) {
+    const supabase = getAdminClient();
+
+    const { error } = await supabase
+        .from('easy_rounds')
+        .delete()
+        .eq('id', roundId);
+
+    if (error) {
+        console.error("Delete Easy Round Error:", error);
+        return { success: false, message: error.message };
+    }
+
+    // Update total_rounds count
+    await supabase.rpc('update_easy_book_round_count', { book_uuid: bookId });
+
+    revalidatePath('/admin/easy');
+    return { success: true, message: "회차가 삭제되었습니다." };
+}
+
 export async function updateEasyRound(roundId: string, data: {
     title?: string;
     answers?: number[];

@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, BookOpen, FileText, ChevronRight, Loader2, Check } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Plus, BookOpen, FileText, ChevronRight, Loader2, Check, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { getListeningBooks, createListeningBook, getListeningRounds, createListeningRound } from "@/lib/actions/listening";
+import { getListeningBooks, createListeningBook, getListeningRounds, createListeningRound, deleteListeningBook, deleteListeningRound } from "@/lib/actions/listening";
 
 interface ListeningBook {
     id: string;
@@ -90,6 +91,31 @@ export default function AdminListeningPage() {
             toast.error(result.message);
         }
         setSubmittingBook(false);
+    }
+
+    async function handleDeleteBook(bookId: string) {
+        const result = await deleteListeningBook(bookId);
+        if (result.success) {
+            toast.success(result.message);
+            if (selectedBook?.id === bookId) {
+                setSelectedBook(null);
+                setRounds([]);
+            }
+            loadBooks();
+        } else {
+            toast.error(result.message);
+        }
+    }
+
+    async function handleDeleteRound(roundId: string) {
+        if (!selectedBook) return;
+        const result = await deleteListeningRound(roundId, selectedBook.id);
+        if (result.success) {
+            toast.success(result.message);
+            loadRounds(selectedBook);
+        } else {
+            toast.error(result.message);
+        }
     }
 
     async function handleCreateRound() {
@@ -210,7 +236,39 @@ export default function AdminListeningPage() {
                                                 {book.listening_rounds?.[0]?.count || 0}개 회차
                                             </p>
                                         </div>
-                                        <ChevronRight className="w-5 h-5 text-slate-400" />
+                                        <div className="flex items-center gap-2">
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="h-8 w-8 text-slate-400 hover:text-red-500"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>교재 삭제</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            &quot;{book.name}&quot; 교재를 삭제하시겠습니까?
+                                                            삭제 후에는 교재 목록에서 보이지 않습니다.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>취소</AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                            className="bg-red-600 hover:bg-red-700"
+                                                            onClick={() => handleDeleteBook(book.id)}
+                                                        >
+                                                            삭제
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                            <ChevronRight className="w-5 h-5 text-slate-400" />
+                                        </div>
                                     </div>
                                 </Card>
                             ))}
@@ -307,6 +365,35 @@ export default function AdminListeningPage() {
                                                     <span className="text-sm text-slate-500">
                                                         {round.question_count}문항
                                                     </span>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="h-7 w-7 text-slate-400 hover:text-red-500"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>회차 삭제</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    {round.round_number}회 ({round.title})를 삭제하시겠습니까?
+                                                                    이 회차의 정답 데이터가 삭제됩니다.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>취소</AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    className="bg-red-600 hover:bg-red-700"
+                                                                    onClick={() => handleDeleteRound(round.id)}
+                                                                >
+                                                                    삭제
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
                                                 </div>
                                             </div>
                                             <div className="mt-2 text-xs text-slate-400 truncate">
