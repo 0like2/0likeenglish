@@ -8,6 +8,7 @@ import ManageLessonsForm from "@/components/admin/ManageLessonsForm";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import VocabTestChecker from "@/components/admin/VocabTestChecker";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -70,6 +71,41 @@ export default async function ClassDetailPage({ params }: PageProps) {
             console.error(`[ClassDetailPage] Exams Fetch Error:`, examsError);
             throw new Error(`Failed to fetch exams: ${examsError.message}`);
         }
+
+        // Fetch Class Members with User Info
+        const { data: classMembers } = await supabase
+            .from('class_members')
+            .select(`
+                student_id,
+                users (id, name)
+            `)
+            .eq('class_id', id)
+            .eq('status', 'active');
+
+        const students = classMembers?.map((m: any) => ({
+            id: m.student_id,
+            name: m.users?.name || 'Unknown'
+        })) || [];
+
+        // Fetch Vocab Test Statuses for all lessons
+        const lessonIds = lessonLogs?.map((l: any) => l.id) || [];
+        let vocabTestStatuses: any[] = [];
+        if (lessonIds.length > 0) {
+            const { data: checks } = await supabase
+                .from('student_lesson_checks')
+                .select('lesson_id, student_id, vocab_test_passed')
+                .in('lesson_id', lessonIds);
+            vocabTestStatuses = checks || [];
+        }
+
+        // Create a map for quick lookup: lessonId -> { studentId -> vocab_test_passed }
+        const vocabStatusMap = new Map<string, Map<string, boolean | null>>();
+        vocabTestStatuses.forEach((check: any) => {
+            if (!vocabStatusMap.has(check.lesson_id)) {
+                vocabStatusMap.set(check.lesson_id, new Map());
+            }
+            vocabStatusMap.get(check.lesson_id)!.set(check.student_id, check.vocab_test_passed);
+        });
 
         const studentCount = classData.class_members?.[0]?.count || 0;
 
@@ -181,6 +217,15 @@ export default async function ClassDetailPage({ params }: PageProps) {
                                                                 </div>
                                                             )}
                                                         </div>
+                                                        {log.vocab_hw && students.length > 0 && (
+                                                            <VocabTestChecker
+                                                                lessonId={log.id}
+                                                                students={students.map(s => ({
+                                                                    ...s,
+                                                                    vocabTestPassed: vocabStatusMap.get(log.id)?.get(s.id) ?? null
+                                                                }))}
+                                                            />
+                                                        )}
                                                     </AccordionContent>
                                                 </AccordionItem>
                                             ))}

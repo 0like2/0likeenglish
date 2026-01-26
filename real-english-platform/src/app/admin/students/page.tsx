@@ -1,11 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { BarChart2 } from "lucide-react";
 import AssignClassDialog from "@/components/admin/AssignClassDialog";
 import PaymentManageDialog from "@/components/admin/PaymentManageDialog";
 import { getStudentsData, getClassesData } from "@/lib/data/admin";
 import StudentListFilters from "@/components/admin/StudentListFilters";
+import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
 
@@ -70,6 +71,12 @@ export default async function StudentManagementPage() {
                                             </td>
                                             <td className="px-6 py-4 text-slate-500">{student.lastActive}</td>
                                             <td className="px-6 py-4 flex items-center gap-2">
+                                                <Button variant="outline" size="sm" asChild>
+                                                    <Link href={`/admin/students/${student.id}`}>
+                                                        <BarChart2 className="w-4 h-4 mr-1" />
+                                                        분석
+                                                    </Link>
+                                                </Button>
                                                 <AssignClassDialog
                                                     studentName={student.name}
                                                     studentId={student.id}

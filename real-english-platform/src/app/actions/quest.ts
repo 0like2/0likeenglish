@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/actions/admin";
 
 export async function submitQuestProof(questId: string, imagePath: string) {
     try {
@@ -49,6 +50,24 @@ export async function submitQuestProof(questId: string, imagePath: string) {
             console.error("Error submitting proof:", error);
             return { success: false, message: "DB 저장 오류 발생" };
         }
+
+        // Get quest title for logging
+        const { data: questInfo } = await supabase
+            .from('class_quests')
+            .select('title')
+            .eq('id', questId)
+            .single();
+
+        // Log activity
+        const userName = user.user_metadata?.name || user.email?.split('@')[0] || '학생';
+        const questTitle = questInfo?.title || '숙제';
+        await logActivity(
+            user.id,
+            userName,
+            'submit',
+            `${userName} 학생이 '${questTitle}'를 제출했습니다. (${currentCount}회차)`,
+            { questId, questTitle, currentCount, status }
+        );
 
         revalidatePath('/dashboard');
         revalidatePath('/class/[id]');

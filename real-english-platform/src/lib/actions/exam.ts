@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import { logActivity } from "./admin";
 
 // Helper to get admin client (duplicated from admin.ts, better to export shared utility but fine here for now)
 function getAdminClient() {
@@ -146,6 +147,16 @@ export async function submitExam(examId: string, studentAnswers: number[]) {
         console.error("Quest Update Failed (Non-critical):", questError);
         // Don't fail the whole submission just because quest update failed
     }
+
+    // Log activity
+    const userName = user.user_metadata?.name || user.email?.split('@')[0] || '학생';
+    await logActivity(
+        user.id,
+        userName,
+        'exam',
+        `${userName} 학생이 '${exam.title}'을(를) 완료했습니다. (${score}점)`,
+        { examId, examTitle: exam.title, score }
+    );
 
     revalidatePath(`/class/exam/${examId}`);
     revalidatePath('/dashboard');
