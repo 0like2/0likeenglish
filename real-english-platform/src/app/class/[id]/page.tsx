@@ -208,7 +208,7 @@ export default async function ClassHomePage({ params }: PageProps) {
 
                                             <QuestSubmission
                                                 questId={quest.id}
-                                                questType={quest.type || quest.title}
+                                                questType={quest.title}
                                                 currentCount={current}
                                                 targetCount={target}
                                                 isCompleted={isDone}
