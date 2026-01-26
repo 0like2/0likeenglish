@@ -60,9 +60,26 @@ export async function updateSession(request: NextRequest) {
         }
     }
 
-    // Protect /dashboard routes (Student + Teacher)
-    if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
-        return NextResponse.redirect(new URL('/auth/login', request.url))
+    // Protect /dashboard routes (Student + Teacher only, redirect Parent to /parent)
+    if (request.nextUrl.pathname.startsWith('/dashboard')) {
+        if (!user) {
+            return NextResponse.redirect(new URL('/auth/login', request.url));
+        }
+        const role = user.user_metadata?.role;
+        if (role === 'parent') {
+            return NextResponse.redirect(new URL('/parent', request.url));
+        }
+    }
+
+    // Protect /parent routes (Parent only)
+    if (request.nextUrl.pathname.startsWith('/parent')) {
+        if (!user) {
+            return NextResponse.redirect(new URL('/auth/login', request.url));
+        }
+        const role = user.user_metadata?.role;
+        if (role !== 'parent') {
+            return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
     }
 
     // Protect /admin routes (Teacher only)

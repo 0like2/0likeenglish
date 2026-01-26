@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { createClient } from "@/lib/supabase/client";
-import { Chrome, Mail, UserPlus } from "lucide-react";
+import { Chrome, Mail, UserPlus, GraduationCap, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -14,6 +15,7 @@ export default function AuthButtons() {
     const [password, setPassword] = useState("");
     const [name, setName] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [selectedRole, setSelectedRole] = useState<'student' | 'parent'>('student');
     const supabase = createClient();
     const router = useRouter();
 
@@ -78,7 +80,7 @@ export default function AuthButtons() {
                 options: {
                     data: {
                         name: name,
-                        role: 'student'
+                        role: selectedRole
                     }
                 }
             });
@@ -90,7 +92,7 @@ export default function AuthButtons() {
                     id: data.user.id,
                     email: email,
                     name: name,
-                    role: 'student'
+                    role: selectedRole
                 });
             }
 
@@ -151,6 +153,29 @@ export default function AuthButtons() {
                             onChange={(e) => setName(e.target.value)}
                             disabled={loading}
                         />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>가입 유형</Label>
+                        <RadioGroup
+                            value={selectedRole}
+                            onValueChange={(value) => setSelectedRole(value as 'student' | 'parent')}
+                            className="flex gap-4"
+                        >
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="student" id="role-student" />
+                                <Label htmlFor="role-student" className="flex items-center gap-1 cursor-pointer">
+                                    <GraduationCap className="w-4 h-4" />
+                                    학생
+                                </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="parent" id="role-parent" />
+                                <Label htmlFor="role-parent" className="flex items-center gap-1 cursor-pointer">
+                                    <Users className="w-4 h-4" />
+                                    학부모
+                                </Label>
+                            </div>
+                        </RadioGroup>
                     </div>
                     <div className="space-y-1">
                         <Label htmlFor="email">이메일</Label>
