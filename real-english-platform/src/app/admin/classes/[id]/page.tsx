@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import VocabTestChecker from "@/components/admin/VocabTestChecker";
+import LessonEditDialog from "@/components/admin/LessonEditDialog";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -226,6 +227,25 @@ export default async function ClassDetailPage({ params }: PageProps) {
                                                                 }))}
                                                             />
                                                         )}
+                                                        {/* Edit/Delete Buttons */}
+                                                        <div className="mt-4 pt-4 border-t flex justify-end">
+                                                            <LessonEditDialog
+                                                                lesson={{
+                                                                    id: log.id,
+                                                                    title: log.title,
+                                                                    date: log.date,
+                                                                    content: log.content,
+                                                                    vocab_hw: log.vocab_hw,
+                                                                    listening_hw: log.listening_hw,
+                                                                    grammar_hw: log.grammar_hw,
+                                                                    other_hw: log.other_hw,
+                                                                    exam_id: log.exam_id,
+                                                                    status: log.status
+                                                                }}
+                                                                classId={id}
+                                                                exams={exams || []}
+                                                            />
+                                                        </div>
                                                     </AccordionContent>
                                                 </AccordionItem>
                                             ))}

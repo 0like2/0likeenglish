@@ -78,9 +78,76 @@ export async function createLesson(classId: string, formData: any) {
     return { success: true, data };
 }
 
+export async function updateLesson(lessonId: string, classId: string, formData: any) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("Unauthorized");
+
+    const userRole = user.user_metadata?.role;
+    if (userRole !== 'teacher' && user.email !== 'dudfkr236@gmail.com') {
+        throw new Error("Only teachers can update lessons");
+    }
+
+    const adminSupabase = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const updateData = {
+        title: formData.title,
+        date: formData.date,
+        content: formData.content || null,
+        vocab_hw: formData.vocab_hw || null,
+        listening_hw: formData.listening_hw || null,
+        grammar_hw: formData.grammar_hw || null,
+        other_hw: formData.other_hw || null,
+        exam_id: formData.exam_id && formData.exam_id !== '' ? formData.exam_id : null,
+        status: formData.status || 'upcoming'
+    };
+
+    const { error } = await adminSupabase
+        .from('lesson_plans')
+        .update(updateData)
+        .eq('id', lessonId);
+
+    if (error) {
+        console.error("[updateLesson] Error:", error);
+        throw new Error(error.message);
+    }
+
+    revalidatePath(`/class/${classId}`);
+    revalidatePath(`/admin/classes/${classId}`);
+    return { success: true };
+}
+
 export async function deleteLesson(lessonId: string, classId: string) {
     const supabase = await createClient();
-    const { error } = await supabase.from('lesson_plans').delete().eq('id', lessonId);
-    if (error) throw new Error(error.message);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("Unauthorized");
+
+    const userRole = user.user_metadata?.role;
+    if (userRole !== 'teacher' && user.email !== 'dudfkr236@gmail.com') {
+        throw new Error("Only teachers can delete lessons");
+    }
+
+    const adminSupabase = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { error } = await adminSupabase
+        .from('lesson_plans')
+        .delete()
+        .eq('id', lessonId);
+
+    if (error) {
+        console.error("[deleteLesson] Error:", error);
+        throw new Error(error.message);
+    }
+
     revalidatePath(`/class/${classId}`);
+    revalidatePath(`/admin/classes/${classId}`);
+    return { success: true };
 }
