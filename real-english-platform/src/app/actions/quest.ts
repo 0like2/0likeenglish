@@ -1,9 +1,22 @@
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/actions/admin";
 import { notifyAdmins } from "@/lib/actions/notification";
+import { validateDailySubmission } from "@/lib/submission-validator";
+import { getHomeworkDate } from "@/lib/homework-date";
+
+function getAdminClient() {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+    }
+    return createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+}
 
 export async function submitQuestProof(questId: string, imagePath: string) {
     try {
@@ -12,8 +25,16 @@ export async function submitQuestProof(questId: string, imagePath: string) {
 
         if (!user) return { success: false, message: "로그인이 필요합니다." };
 
+        const adminClient = getAdminClient();
+
+        // 하루 1회 제출 제한 체크
+        const validation = await validateDailySubmission(adminClient, user.id, 'vocab', questId);
+        if (!validation.canSubmit) {
+            return { success: false, message: validation.reason };
+        }
+
         // 1. Get current Quest info (to know frequency)
-        const { data: quest } = await supabase
+        const { data: quest } = await adminClient
             .from('class_quests')
             .select('weekly_frequency')
             .eq('id', questId)
@@ -22,7 +43,7 @@ export async function submitQuestProof(questId: string, imagePath: string) {
         if (!quest) return { success: false, message: "퀘스트 정보를 찾을 수 없습니다." };
 
         // 2. Get current progress (or create if missing)
-        const { data: progress } = await supabase
+        const { data: progress } = await adminClient
             .from('student_quest_progress')
             .select('*')
             .eq('student_id', user.id)
@@ -36,7 +57,7 @@ export async function submitQuestProof(questId: string, imagePath: string) {
             status = 'completed';
         }
 
-        const { error } = await supabase
+        const { error } = await adminClient
             .from('student_quest_progress')
             .upsert({
                 student_id: user.id,
@@ -44,7 +65,8 @@ export async function submitQuestProof(questId: string, imagePath: string) {
                 current_count: currentCount,
                 last_proof_image_url: imagePath,
                 last_submitted_at: new Date().toISOString(),
-                status: status
+                status: status,
+                homework_date: validation.homeworkDate
             }, { onConflict: 'student_id, quest_id' });
 
         if (error) {
@@ -53,7 +75,7 @@ export async function submitQuestProof(questId: string, imagePath: string) {
         }
 
         // Get quest title for logging
-        const { data: questInfo } = await supabase
+        const { data: questInfo } = await adminClient
             .from('class_quests')
             .select('title')
             .eq('id', questId)

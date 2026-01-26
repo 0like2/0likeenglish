@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "./admin";
+import { validateDailySubmission } from "@/lib/submission-validator";
+import { getHomeworkDate } from "@/lib/homework-date";
 
 function getAdminClient() {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -203,8 +205,15 @@ export async function submitListeningExam(roundId: string, studentAnswers: numbe
         return { success: false, message: "듣기 답안은 17개여야 합니다. (1-17번)" };
     }
 
-    // 1. Get round info with answers
     const adminClient = getAdminClient();
+
+    // 하루 1회 제출 제한 체크
+    const validation = await validateDailySubmission(adminClient, user.id, 'listening');
+    if (!validation.canSubmit) {
+        return { success: false, message: validation.reason };
+    }
+
+    // 1. Get round info with answers
     const { data: round, error: fetchError } = await adminClient
         .from('listening_rounds')
         .select('*, listening_books(name)')
@@ -234,7 +243,7 @@ export async function submitListeningExam(roundId: string, studentAnswers: numbe
 
     const score = Math.round((correctCount / 17) * 100);
 
-    // 3. Save submission
+    // 3. Save submission with homework_date
     const { error: saveError } = await adminClient.from('listening_submissions').insert({
         student_id: user.id,
         round_id: roundId,
@@ -242,7 +251,8 @@ export async function submitListeningExam(roundId: string, studentAnswers: numbe
         score: score,
         correct_count: correctCount,
         total_count: 17,
-        details: details
+        details: details,
+        homework_date: validation.homeworkDate
     });
 
     if (saveError) {

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "./admin";
+import { validateDailySubmission } from "@/lib/submission-validator";
 
 function getAdminClient() {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -225,8 +226,15 @@ export async function submitEasyExam(roundId: string, studentAnswers: number[]) 
         return { success: false, message: "쉬운문제 답안은 10개여야 합니다." };
     }
 
-    // 1. Get round info with answers
     const adminClient = getAdminClient();
+
+    // 하루 1회 제출 제한 체크
+    const validation = await validateDailySubmission(adminClient, user.id, 'easy');
+    if (!validation.canSubmit) {
+        return { success: false, message: validation.reason };
+    }
+
+    // 1. Get round info with answers
     const { data: round, error: fetchError } = await adminClient
         .from('easy_rounds')
         .select('*, easy_books(name)')
@@ -254,7 +262,7 @@ export async function submitEasyExam(roundId: string, studentAnswers: number[]) 
 
     const score = Math.round((correctCount / answerKey.length) * 100);
 
-    // 3. Save submission
+    // 3. Save submission with homework_date
     const { error: saveError } = await adminClient.from('easy_submissions').insert({
         student_id: user.id,
         round_id: roundId,
@@ -262,7 +270,8 @@ export async function submitEasyExam(roundId: string, studentAnswers: number[]) 
         score: score,
         correct_count: correctCount,
         total_count: answerKey.length,
-        details: details
+        details: details,
+        homework_date: validation.homeworkDate
     });
 
     if (saveError) {

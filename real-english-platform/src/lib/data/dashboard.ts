@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
+import { getHomeworkDate, formatDeadline, getTimeRemaining, isBeforeDeadline } from '@/lib/homework-date';
 
 export async function getUserProfile() {
     const supabaseUser = await createClient();
@@ -526,5 +527,230 @@ export async function getStreakData(userId: string) {
         thisMonthDays,
         totalDays,
         recentActivity
+    };
+}
+
+// ============================================
+// 오늘의 숙제 상태 조회
+// ============================================
+
+export interface TodayHomeworkStatus {
+    listening: {
+        submitted: boolean;
+        required: boolean;
+    };
+    easy: {
+        submitted: boolean;
+        required: boolean;
+    };
+    vocab: {
+        submitted: boolean;
+        required: boolean;
+    };
+    homeworkDate: string;
+    deadline: string;
+    timeRemaining: string;
+    isExpired: boolean;
+}
+
+export async function getTodayHomeworkStatus(userId: string, classId: string): Promise<TodayHomeworkStatus> {
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceRoleKey) {
+        return {
+            listening: { submitted: false, required: false },
+            easy: { submitted: false, required: false },
+            vocab: { submitted: false, required: false },
+            homeworkDate: '',
+            deadline: '',
+            timeRemaining: '',
+            isExpired: true
+        };
+    }
+
+    const supabase = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        serviceRoleKey
+    );
+
+    const homeworkDate = getHomeworkDate();
+    const deadline = formatDeadline(homeworkDate);
+    const timeRemaining = getTimeRemaining(homeworkDate);
+    const isExpired = !isBeforeDeadline(homeworkDate);
+
+    // 반의 숙제 설정 조회
+    const { data: classData } = await supabase
+        .from('classes')
+        .select('quest_listening_on, quest_easy_on, quest_vocab_on')
+        .eq('id', classId)
+        .single();
+
+    const listeningRequired = classData?.quest_listening_on || false;
+    const easyRequired = classData?.quest_easy_on || false;
+    const vocabRequired = classData?.quest_vocab_on || false;
+
+    // 오늘 제출 현황 조회
+    const [listeningResult, easyResult, vocabResult] = await Promise.all([
+        listeningRequired ? supabase
+            .from('listening_submissions')
+            .select('id')
+            .eq('student_id', userId)
+            .eq('homework_date', homeworkDate)
+            .maybeSingle()
+            : { data: null },
+
+        easyRequired ? supabase
+            .from('easy_submissions')
+            .select('id')
+            .eq('student_id', userId)
+            .eq('homework_date', homeworkDate)
+            .maybeSingle()
+            : { data: null },
+
+        vocabRequired ? supabase
+            .from('student_quest_progress')
+            .select('id')
+            .eq('student_id', userId)
+            .eq('homework_date', homeworkDate)
+            .limit(1)
+            : { data: [] }
+    ]);
+
+    return {
+        listening: {
+            submitted: !!listeningResult.data,
+            required: listeningRequired
+        },
+        easy: {
+            submitted: !!easyResult.data,
+            required: easyRequired
+        },
+        vocab: {
+            submitted: Array.isArray(vocabResult.data) ? vocabResult.data.length > 0 : !!vocabResult.data,
+            required: vocabRequired
+        },
+        homeworkDate,
+        deadline,
+        timeRemaining,
+        isExpired
+    };
+}
+
+// ============================================
+// 놓친 숙제 조회
+// ============================================
+
+export interface MissedHomework {
+    date: string;
+    type: 'listening' | 'easy' | 'vocab';
+    typeName: string;
+}
+
+export interface MissedHomeworkSummary {
+    listening: number;
+    easy: number;
+    vocab: number;
+    total: number;
+    recentMissed: MissedHomework[];
+}
+
+export async function getMissedHomeworks(
+    userId: string,
+    classId: string,
+    days: number = 7
+): Promise<MissedHomeworkSummary> {
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceRoleKey) {
+        return { listening: 0, easy: 0, vocab: 0, total: 0, recentMissed: [] };
+    }
+
+    const supabase = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        serviceRoleKey
+    );
+
+    // 반의 숙제 설정 조회
+    const { data: classData } = await supabase
+        .from('classes')
+        .select('quest_listening_on, quest_easy_on, quest_vocab_on')
+        .eq('id', classId)
+        .single();
+
+    if (!classData) {
+        return { listening: 0, easy: 0, vocab: 0, total: 0, recentMissed: [] };
+    }
+
+    // 최근 N일의 숙제 날짜 계산 (오늘 제외)
+    const homeworkDates: string[] = [];
+    const now = new Date();
+
+    for (let i = 1; i <= days; i++) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        const dateStr = getHomeworkDate(date);
+        homeworkDates.push(dateStr);
+    }
+
+    if (homeworkDates.length === 0) {
+        return { listening: 0, easy: 0, vocab: 0, total: 0, recentMissed: [] };
+    }
+
+    // 제출된 숙제 조회
+    const [listeningSubmissions, easySubmissions, vocabSubmissions] = await Promise.all([
+        classData.quest_listening_on ? supabase
+            .from('listening_submissions')
+            .select('homework_date')
+            .eq('student_id', userId)
+            .in('homework_date', homeworkDates)
+            : { data: [] },
+
+        classData.quest_easy_on ? supabase
+            .from('easy_submissions')
+            .select('homework_date')
+            .eq('student_id', userId)
+            .in('homework_date', homeworkDates)
+            : { data: [] },
+
+        classData.quest_vocab_on ? supabase
+            .from('student_quest_progress')
+            .select('homework_date')
+            .eq('student_id', userId)
+            .in('homework_date', homeworkDates)
+            : { data: [] }
+    ]);
+
+    const submittedListening = new Set((listeningSubmissions.data || []).map((s: any) => s.homework_date));
+    const submittedEasy = new Set((easySubmissions.data || []).map((s: any) => s.homework_date));
+    const submittedVocab = new Set((vocabSubmissions.data || []).map((s: any) => s.homework_date));
+
+    // 놓친 숙제 계산
+    let missedListening = 0;
+    let missedEasy = 0;
+    let missedVocab = 0;
+    const recentMissed: MissedHomework[] = [];
+
+    for (const date of homeworkDates) {
+        if (classData.quest_listening_on && !submittedListening.has(date)) {
+            missedListening++;
+            recentMissed.push({ date, type: 'listening', typeName: '듣기' });
+        }
+        if (classData.quest_easy_on && !submittedEasy.has(date)) {
+            missedEasy++;
+            recentMissed.push({ date, type: 'easy', typeName: '쉬운문제' });
+        }
+        if (classData.quest_vocab_on && !submittedVocab.has(date)) {
+            missedVocab++;
+            recentMissed.push({ date, type: 'vocab', typeName: '영단어' });
+        }
+    }
+
+    // 최근 놓친 것부터 정렬 (날짜 내림차순)
+    recentMissed.sort((a, b) => b.date.localeCompare(a.date));
+
+    return {
+        listening: missedListening,
+        easy: missedEasy,
+        vocab: missedVocab,
+        total: missedListening + missedEasy + missedVocab,
+        recentMissed: recentMissed.slice(0, 5) // 최근 5개만
     };
 }

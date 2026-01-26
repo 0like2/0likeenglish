@@ -5,7 +5,7 @@ import LearningStreak from "@/components/dashboard/LearningStreak";
 import MonthlyReport from "@/components/dashboard/MonthlyReport";
 import ParentLinkCode from "@/components/dashboard/ParentLinkCode";
 import { Badge } from "@/components/ui/badge";
-import { getUserProfile, getPaymentStatus, getClassInfo, getDashboardData, getReportData, getStreakData } from "@/lib/data/dashboard";
+import { getUserProfile, getPaymentStatus, getClassInfo, getDashboardData, getReportData, getStreakData, getTodayHomeworkStatus, getMissedHomeworks } from "@/lib/data/dashboard";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -20,8 +20,12 @@ export default async function DashboardPage() {
     ]);
     const { user, payment, classInfo, recentLessons, quests, usedLessonCount } = dashboardData;
 
-    // Get streak data for the user
-    const streakData = user ? await getStreakData(user.id) : null;
+    // Get streak data and homework status for the user
+    const [streakData, todayStatus, missedHomework] = await Promise.all([
+        user ? getStreakData(user.id) : null,
+        user && classInfo ? getTodayHomeworkStatus(user.id, classInfo.id) : null,
+        user && classInfo ? getMissedHomeworks(user.id, classInfo.id, 7) : null
+    ]);
     const today = format(new Date(), "yyyy년 MM월 dd일 (EEE)", { locale: ko });
 
     // Status mapping & Dates
@@ -72,6 +76,8 @@ export default async function DashboardPage() {
                     />
                     <HomeworkProgress
                         quests={quests || []}
+                        todayStatus={todayStatus || undefined}
+                        missedHomework={missedHomework || undefined}
                     />
                 </div>
 
