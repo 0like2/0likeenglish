@@ -375,3 +375,130 @@ async function calculateHomeworkRate(
     const rate = Math.round((completedCount / totalHomeworks) * 100);
     return { total: totalHomeworks, completed: completedCount, rate };
 }
+
+// Get learning streak data
+export async function getStreakData(userId: string) {
+    const supabase = await createClient();
+
+    // Get all submission dates from multiple tables
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get listening submissions
+    const { data: listeningSubmissions } = await supabase
+        .from('listening_submissions')
+        .select('created_at')
+        .eq('student_id', userId)
+        .order('created_at', { ascending: false });
+
+    // Get easy submissions
+    const { data: easySubmissions } = await supabase
+        .from('easy_submissions')
+        .select('created_at')
+        .eq('student_id', userId)
+        .order('created_at', { ascending: false });
+
+    // Get quest progress submissions
+    const { data: questSubmissions } = await supabase
+        .from('student_quest_progress')
+        .select('last_submitted_at')
+        .eq('student_id', userId)
+        .not('last_submitted_at', 'is', null)
+        .order('last_submitted_at', { ascending: false });
+
+    // Combine all submission dates
+    const allDates = new Set<string>();
+
+    listeningSubmissions?.forEach((s: any) => {
+        const date = new Date(s.created_at);
+        date.setHours(0, 0, 0, 0);
+        allDates.add(date.toISOString().split('T')[0]);
+    });
+
+    easySubmissions?.forEach((s: any) => {
+        const date = new Date(s.created_at);
+        date.setHours(0, 0, 0, 0);
+        allDates.add(date.toISOString().split('T')[0]);
+    });
+
+    questSubmissions?.forEach((s: any) => {
+        if (s.last_submitted_at) {
+            const date = new Date(s.last_submitted_at);
+            date.setHours(0, 0, 0, 0);
+            allDates.add(date.toISOString().split('T')[0]);
+        }
+    });
+
+    const sortedDates = Array.from(allDates).sort().reverse();
+
+    // Calculate current streak
+    let currentStreak = 0;
+    let checkDate = new Date(today);
+
+    for (let i = 0; i < 365; i++) {
+        const dateStr = checkDate.toISOString().split('T')[0];
+        if (allDates.has(dateStr)) {
+            currentStreak++;
+            checkDate.setDate(checkDate.getDate() - 1);
+        } else if (i === 0) {
+            // Today hasn't been counted yet, check yesterday
+            checkDate.setDate(checkDate.getDate() - 1);
+            continue;
+        } else {
+            break;
+        }
+    }
+
+    // Calculate longest streak
+    let longestStreak = 0;
+    let tempStreak = 0;
+    let prevDate: Date | null = null;
+
+    sortedDates.reverse().forEach(dateStr => {
+        const date = new Date(dateStr);
+        if (prevDate) {
+            const diffDays = Math.floor((date.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
+            if (diffDays === 1) {
+                tempStreak++;
+            } else {
+                tempStreak = 1;
+            }
+        } else {
+            tempStreak = 1;
+        }
+        longestStreak = Math.max(longestStreak, tempStreak);
+        prevDate = date;
+    });
+
+    // Calculate this month's active days
+    const thisMonth = today.getMonth();
+    const thisYear = today.getFullYear();
+    let thisMonthDays = 0;
+
+    allDates.forEach(dateStr => {
+        const date = new Date(dateStr);
+        if (date.getMonth() === thisMonth && date.getFullYear() === thisYear) {
+            thisMonthDays++;
+        }
+    });
+
+    // Get last 7 days activity
+    const recentActivity: boolean[] = [];
+    for (let i = 6; i >= 0; i--) {
+        const checkDate = new Date(today);
+        checkDate.setDate(checkDate.getDate() - i);
+        const dateStr = checkDate.toISOString().split('T')[0];
+        recentActivity.push(allDates.has(dateStr));
+    }
+
+    // Total days in this month so far
+    const totalDays = today.getDate();
+
+    return {
+        currentStreak,
+        longestStreak,
+        thisMonthDays,
+        totalDays,
+        recentActivity
+    };
+}

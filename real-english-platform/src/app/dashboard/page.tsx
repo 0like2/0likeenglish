@@ -1,10 +1,11 @@
 import PaymentStatus from "@/components/dashboard/PaymentStatus";
 import HomeworkProgress from "@/components/dashboard/HomeworkProgress";
 import LearningPath from "@/components/dashboard/LearningPath";
+import LearningStreak from "@/components/dashboard/LearningStreak";
 import MonthlyReport from "@/components/dashboard/MonthlyReport";
 import ParentLinkCode from "@/components/dashboard/ParentLinkCode";
 import { Badge } from "@/components/ui/badge";
-import { getUserProfile, getPaymentStatus, getClassInfo, getDashboardData, getReportData } from "@/lib/data/dashboard";
+import { getUserProfile, getPaymentStatus, getClassInfo, getDashboardData, getReportData, getStreakData } from "@/lib/data/dashboard";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -18,6 +19,9 @@ export default async function DashboardPage() {
         getReportData()
     ]);
     const { user, payment, classInfo, recentLessons, quests } = dashboardData;
+
+    // Get streak data for the user
+    const streakData = user ? await getStreakData(user.id) : null;
     const today = format(new Date(), "yyyy년 MM월 dd일 (EEE)", { locale: ko });
 
     // Status mapping & Dates
@@ -71,9 +75,22 @@ export default async function DashboardPage() {
                     />
                 </div>
 
-                {/* Main Content Row */}
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Second Row - 2x2 layout */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <LearningPath quests={quests || []} />
+                    {streakData && (
+                        <LearningStreak
+                            currentStreak={streakData.currentStreak}
+                            longestStreak={streakData.longestStreak}
+                            thisMonthDays={streakData.thisMonthDays}
+                            totalDays={streakData.totalDays}
+                            recentActivity={streakData.recentActivity}
+                        />
+                    )}
+                </div>
+
+                {/* Monthly Report - Full Width */}
+                <div className="w-full">
                     <MonthlyReport data={reportData} />
                 </div>
             </div>
