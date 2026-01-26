@@ -196,6 +196,7 @@ export async function getClassesData() {
         students: c.class_members?.[0]?.count || 0,
         quest_vocab_on: c.quest_vocab_on,
         quest_listening_on: c.quest_listening_on,
+        quest_easy_on: c.quest_easy_on,
         quest_mock_on: c.quest_mock_on,
         quest_frequency: c.quest_frequency
     })) || [];
