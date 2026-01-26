@@ -1,17 +1,25 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BarChart2 } from "lucide-react";
+import { BarChart2, FlaskConical } from "lucide-react";
 import AssignClassDialog from "@/components/admin/AssignClassDialog";
 import PaymentManageDialog from "@/components/admin/PaymentManageDialog";
+import UnassignClassButton from "@/components/admin/UnassignClassButton";
 import { getStudentsData, getClassesData } from "@/lib/data/admin";
 import StudentListFilters from "@/components/admin/StudentListFilters";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export const dynamic = 'force-dynamic';
 
-export default async function StudentManagementPage() {
-    const students = await getStudentsData();
+interface PageProps {
+    searchParams: Promise<{ showTest?: string }>;
+}
+
+export default async function StudentManagementPage({ searchParams }: PageProps) {
+    const params = await searchParams;
+    const showTestAccounts = params.showTest === 'true';
+    const students = await getStudentsData({ includeTestAccounts: showTestAccounts });
     const classes = await getClassesData(); // Fetch classes for dropdown
 
     return (
@@ -21,7 +29,9 @@ export default async function StudentManagementPage() {
                 <p className="text-slate-500 mt-2">수강생 목록을 조회하고 수업을 배정합니다.</p>
             </div>
 
-            <StudentListFilters />
+            <Suspense fallback={<div>로딩중...</div>}>
+                <StudentListFilters />
+            </Suspense>
 
             <Card>
                 <CardHeader>
@@ -48,20 +58,37 @@ export default async function StudentManagementPage() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    students.map((student) => (
-                                        <tr key={student.id} className="bg-white border-b hover:bg-slate-50">
+                                    students.map((student: any) => (
+                                        <tr key={student.id} className={`border-b hover:bg-slate-50 ${student.isTestAccount ? 'bg-amber-50/50' : 'bg-white'}`}>
                                             <td className="px-6 py-4 font-medium text-slate-900">
                                                 <div className="flex flex-col">
-                                                    <span>{student.name}</span>
+                                                    <span className="flex items-center gap-1">
+                                                        {student.name}
+                                                        {student.isTestAccount && (
+                                                            <span title="테스트 계정">
+                                                                <FlaskConical className="w-3 h-3 text-amber-500" />
+                                                            </span>
+                                                        )}
+                                                    </span>
                                                     <span className="text-xs text-slate-400 font-normal">{student.school}</span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                {student.class === "미배정" ? (
-                                                    <Badge variant="outline" className="text-slate-400 border-dashed">미배정</Badge>
-                                                ) : (
-                                                    <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100">{student.class}</Badge>
-                                                )}
+                                                <div className="flex items-center gap-2">
+                                                    {student.class === "미배정" ? (
+                                                        <Badge variant="outline" className="text-slate-400 border-dashed">미배정</Badge>
+                                                    ) : (
+                                                        <>
+                                                            <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100">{student.class}</Badge>
+                                                            <UnassignClassButton
+                                                                studentId={student.id}
+                                                                studentName={student.name}
+                                                                classId={student.classId}
+                                                                className={student.class}
+                                                            />
+                                                        </>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 {student.paymentStatus === 'active' && <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-0">수강중</Badge>}

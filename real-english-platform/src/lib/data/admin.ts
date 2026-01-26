@@ -110,7 +110,7 @@ function formatRelativeTime(date: Date): string {
 
 // --- Data Fetching (DAL) ---
 
-export async function getStudentsData() {
+export async function getStudentsData(options?: { includeTestAccounts?: boolean }) {
     // Use Service Role to bypass RLS for admin dashboard if available
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     let supabase;
@@ -131,15 +131,13 @@ export async function getStudentsData() {
         *,
         class_members(
             status,
-            classes(name)
+            class_id,
+            classes(id, name)
         ),
         payments(
             status
         )
     `)
-        /* .eq('role', 'student') -- Allow seeing all for now or filter? User said 3 students. strict filter might hide them if role is null. */
-        /* Let's keep strict filter for now but maybe strict role check is why they are hidden if they don't have role 'student' set? */
-        /* The user screenshot shows role 'student' in DB. So filter is fine. */
         .eq('role', 'student')
         .order('created_at', { ascending: false });
 
@@ -148,8 +146,19 @@ export async function getStudentsData() {
         return [];
     }
 
-    return students.map(s => {
-        const activeClass = s.class_members?.find((m: any) => m.status === 'active')?.classes?.name || '미배정';
+    // Filter out test accounts if not explicitly included
+    const includeTest = options?.includeTestAccounts ?? false;
+    const filteredStudents = includeTest
+        ? students
+        : students.filter(s => {
+            const email = s.email?.toLowerCase() || '';
+            return !email.includes('test') && !email.includes('example');
+        });
+
+    return filteredStudents.map(s => {
+        const activeMembership = s.class_members?.find((m: any) => m.status === 'active');
+        const activeClassName = activeMembership?.classes?.name || '미배정';
+        const activeClassId = activeMembership?.class_id || null;
         const recentPayment = s.payments?.[0]?.status || 'expired';
 
         return {
@@ -157,9 +166,11 @@ export async function getStudentsData() {
             name: s.name,
             email: s.email,
             school: s.school || '학교 정보 없음',
-            class: activeClass,
+            class: activeClassName,
+            classId: activeClassId,
             paymentStatus: recentPayment,
-            lastActive: new Date(s.created_at).toLocaleDateString()
+            lastActive: new Date(s.created_at).toLocaleDateString(),
+            isTestAccount: (s.email?.toLowerCase() || '').includes('test') || (s.email?.toLowerCase() || '').includes('example')
         };
     });
 }

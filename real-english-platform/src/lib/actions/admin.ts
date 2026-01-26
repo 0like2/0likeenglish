@@ -442,6 +442,44 @@ export async function assignClass(studentId: string, classId: string) {
     }
 }
 
+// 반 배정 해제
+export async function unassignClass(studentId: string, classId: string) {
+    try {
+        await checkTeacherRole();
+        const supabase = getAdminClient();
+
+        // Get names for activity log before deletion
+        const { data: student } = await supabase.from('users').select('name').eq('id', studentId).single();
+        const { data: classInfo } = await supabase.from('classes').select('name').eq('id', classId).single();
+        const studentName = student?.name || '학생';
+        const className = classInfo?.name || '수업';
+
+        // Delete the class membership
+        const { error } = await supabase
+            .from('class_members')
+            .delete()
+            .eq('student_id', studentId)
+            .eq('class_id', classId);
+
+        if (error) throw error;
+
+        // Log activity
+        await logActivity(
+            studentId,
+            studentName,
+            'class_assign',
+            `${studentName} 학생이 '${className}'에서 제외되었습니다.`,
+            { studentId, classId, className, action: 'unassign' }
+        );
+
+        revalidatePath('/admin/students');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Unassign Class Error:", error);
+        throw new Error(error.message);
+    }
+}
+
 // --- Blog Management Actions ---
 
 export async function createBlogPost(data: {

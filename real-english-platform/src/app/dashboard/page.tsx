@@ -18,7 +18,7 @@ export default async function DashboardPage() {
         getDashboardData(),
         getReportData()
     ]);
-    const { user, payment, classInfo, recentLessons, quests } = dashboardData;
+    const { user, payment, classInfo, recentLessons, quests, usedLessonCount } = dashboardData;
 
     // Get streak data for the user
     const streakData = user ? await getStreakData(user.id) : null;
@@ -65,7 +65,7 @@ export default async function DashboardPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <PaymentStatus
                         currentCount={payment?.class_count || 4}
-                        usedCount={recentLessons.length}
+                        usedCount={usedLessonCount}
                         status={payStatus}
                         nextPaymentDate={nextPayDate}
                         recentLessons={recentLessons}

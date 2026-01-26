@@ -5,7 +5,7 @@ import MonthlyReport from "@/components/dashboard/MonthlyReport";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getChildInfo } from "@/lib/actions/parent";
-import { getPaymentStatus, getClassInfo, getRecentLessons, getQuestProgress } from "@/lib/data/dashboard";
+import { getPaymentStatus, getClassInfo, getRecentLessons, getQuestProgress, getLessonCountSincePayment } from "@/lib/data/dashboard";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -38,14 +38,17 @@ export default async function ChildDashboardPage({ params }: PageProps) {
 
     let recentLessons: any[] = [];
     let quests: any[] = [];
+    let usedLessonCount = 0;
 
     if (classInfo) {
-        const [lessonsData, questsData] = await Promise.all([
+        const [lessonsData, questsData, lessonCount] = await Promise.all([
             getRecentLessons(classInfo.id),
-            getQuestProgress(classInfo.id, child.id)
+            getQuestProgress(classInfo.id, child.id),
+            getLessonCountSincePayment(classInfo.id, payment?.payment_date)
         ]);
         recentLessons = lessonsData;
         quests = questsData;
+        usedLessonCount = lessonCount;
     }
 
     // Status mapping & Dates
@@ -88,7 +91,7 @@ export default async function ChildDashboardPage({ params }: PageProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <PaymentStatus
                         currentCount={payment?.class_count || 4}
-                        usedCount={recentLessons.length}
+                        usedCount={usedLessonCount}
                         status={payStatus}
                         nextPaymentDate={nextPayDate}
                         recentLessons={recentLessons}

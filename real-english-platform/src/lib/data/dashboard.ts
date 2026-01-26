@@ -96,6 +96,29 @@ export async function getRecentLessons(classId: string) {
     return lessons || [];
 }
 
+// 입금일 이후 진행된 수업 횟수 계산
+export async function getLessonCountSincePayment(classId: string, paymentDate: string | null) {
+    if (!paymentDate) return 0;
+
+    const supabase = await createClient();
+    const today = new Date().toISOString().split('T')[0];
+
+    const { data: lessons, error } = await supabase
+        .from('lesson_plans')
+        .select('id')
+        .eq('class_id', classId)
+        .gte('date', paymentDate.split('T')[0]) // 입금일 이후
+        .lte('date', today) // 오늘까지 (미래 수업 제외)
+        .order('date', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching lessons since payment:', error);
+        return 0;
+    }
+
+    return lessons?.length || 0;
+}
+
 
 export async function getQuestProgress(classId: string, studentId: string) {
     const supabase = await createClient();
@@ -151,18 +174,21 @@ export async function getDashboardData() {
 
     let recentLessons = [];
     let quests = [];
+    let usedLessonCount = 0;
 
     if (classInfo) {
-        // Fetch lessons and quests concurrently
-        const [lessonsData, questsData] = await Promise.all([
+        // Fetch lessons, quests, and used lesson count concurrently
+        const [lessonsData, questsData, lessonCount] = await Promise.all([
             getRecentLessons(classInfo.id),
-            getQuestProgress(classInfo.id, user.id)
+            getQuestProgress(classInfo.id, user.id),
+            getLessonCountSincePayment(classInfo.id, payment?.payment_date)
         ]);
         recentLessons = lessonsData;
         quests = questsData;
+        usedLessonCount = lessonCount;
     }
 
-    return { user, payment, classInfo, recentLessons, quests };
+    return { user, payment, classInfo, recentLessons, quests, usedLessonCount };
 }
 
 // ============================================
