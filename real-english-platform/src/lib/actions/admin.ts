@@ -1049,3 +1049,104 @@ export async function getSubmissionsByStudent(studentId: string) {
         return { listening: [], easy: [], quest: [] };
     }
 }
+
+// --- User Approval Actions ---
+
+// 승인 대기 사용자 목록 조회
+export async function getPendingApprovals() {
+    try {
+        await checkTeacherRole();
+        const supabase = getAdminClient();
+
+        const { data: pendingUsers, error } = await supabase
+            .from('users')
+            .select('id, name, email, role, created_at')
+            .eq('is_approved', false)
+            .neq('role', 'teacher')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        return pendingUsers || [];
+    } catch (error: any) {
+        console.error('Get Pending Approvals Error:', error);
+        return [];
+    }
+}
+
+// 사용자 승인
+export async function approveUser(userId: string) {
+    try {
+        await checkTeacherRole();
+        const supabase = getAdminClient();
+
+        // 사용자 정보 조회
+        const { data: user } = await supabase
+            .from('users')
+            .select('name, email')
+            .eq('id', userId)
+            .single();
+
+        // 승인 처리
+        const { error } = await supabase
+            .from('users')
+            .update({ is_approved: true })
+            .eq('id', userId);
+
+        if (error) throw error;
+
+        // 활동 로그
+        await logActivity(
+            userId,
+            user?.name || '사용자',
+            'approve',
+            `${user?.name || user?.email} 사용자가 승인되었습니다.`,
+            { userId, email: user?.email }
+        );
+
+        revalidatePath('/admin');
+        revalidatePath('/admin/students');
+        return { success: true, message: '사용자가 승인되었습니다.' };
+    } catch (error: any) {
+        console.error('Approve User Error:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+// 사용자 거부 (삭제)
+export async function rejectUser(userId: string) {
+    try {
+        await checkTeacherRole();
+        const supabase = getAdminClient();
+
+        // 사용자 정보 조회
+        const { data: user } = await supabase
+            .from('users')
+            .select('name, email')
+            .eq('id', userId)
+            .single();
+
+        // public.users에서 삭제
+        const { error: deleteError } = await supabase
+            .from('users')
+            .delete()
+            .eq('id', userId);
+
+        if (deleteError) throw deleteError;
+
+        // 활동 로그
+        await logActivity(
+            userId,
+            user?.name || '사용자',
+            'reject',
+            `${user?.name || user?.email} 사용자 가입이 거부되었습니다.`,
+            { userId, email: user?.email }
+        );
+
+        revalidatePath('/admin');
+        return { success: true, message: '사용자 가입이 거부되었습니다.' };
+    } catch (error: any) {
+        console.error('Reject User Error:', error);
+        return { success: false, message: error.message };
+    }
+}

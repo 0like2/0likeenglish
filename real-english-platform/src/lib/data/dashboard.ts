@@ -168,6 +168,11 @@ export async function getDashboardData() {
         redirect('/auth/login');
     }
 
+    // 관리자 승인 체크 (선생님은 자동 승인)
+    if (user.role !== 'teacher' && user.is_approved === false) {
+        redirect('/auth/pending');
+    }
+
     const [payment, classInfo] = await Promise.all([
         getPaymentStatus(user.id),
         getClassInfo(user.id)

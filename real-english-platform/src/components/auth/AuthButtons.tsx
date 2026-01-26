@@ -86,17 +86,18 @@ export default function AuthButtons() {
             });
             if (error) throw error;
 
-            // 회원가입 성공 시 public.users 테이블에도 추가
+            // 회원가입 성공 시 public.users 테이블에도 추가 (승인 대기 상태)
             if (data.user) {
                 await supabase.from('users').upsert({
                     id: data.user.id,
                     email: email,
                     name: name,
-                    role: selectedRole
+                    role: selectedRole,
+                    is_approved: false  // 관리자 승인 필요
                 });
             }
 
-            toast.success("회원가입 성공! 이메일을 확인해주세요.");
+            toast.success("회원가입 완료! 관리자 승인 후 이용 가능합니다.");
             setIsSignUp(false);
             setPassword("");
             setConfirmPassword("");

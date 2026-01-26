@@ -3,10 +3,15 @@ import { Users, FileText, Bell, BookOpen } from "lucide-react";
 import { getDashboardStats, getRecentActivityLogs } from "@/lib/data/admin";
 import { DataRestoreCard } from "@/components/admin/DataRestoreCard";
 import ActivityLogList from "@/components/admin/ActivityLogList";
+import PendingApprovals from "@/components/admin/PendingApprovals";
+import { getPendingApprovals } from "@/lib/actions/admin";
 
 export default async function AdminDashboardPage() {
-    const stats = await getDashboardStats();
-    const activityLogs = await getRecentActivityLogs(10);
+    const [stats, activityLogs, pendingUsers] = await Promise.all([
+        getDashboardStats(),
+        getRecentActivityLogs(10),
+        getPendingApprovals()
+    ]);
 
     // Format today's classes info
     const todayClassesInfo = stats.todayClasses.length > 0
@@ -76,6 +81,9 @@ export default async function AdminDashboardPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Pending Approvals */}
+            <PendingApprovals pendingUsers={pendingUsers} />
 
             {/* Data Restoration Section */}
             <DataRestoreCard />
