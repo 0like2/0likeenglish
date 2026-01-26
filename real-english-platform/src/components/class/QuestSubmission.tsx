@@ -9,6 +9,7 @@ import { Camera, Check, Loader2, Headphones, FileText, CheckCircle2, XCircle, Cl
 import { toast } from "sonner";
 import { createBrowserClient } from "@supabase/ssr";
 import { submitQuestProof } from "@/app/actions/quest";
+import { compressImage, formatFileSize } from "@/lib/image-compressor";
 import { getListeningBooks, getListeningRounds, submitListeningExam } from "@/lib/actions/listening";
 import { getEasyBooks, getEasyRounds, submitEasyExam } from "@/lib/actions/easy";
 import { getAvailableExams, submitExam } from "@/lib/actions/exam";
@@ -175,23 +176,31 @@ export default function QuestSubmission({
         setExams(data);
     }
 
-    // Photo upload for vocab
+    // Photo upload for vocab (with compression)
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         try {
             setUploading(true);
+
+            // 이미지 압축 (3MB → ~100KB)
+            const compressedFile = await compressImage(file, {
+                maxWidth: 800,
+                maxHeight: 800,
+                quality: 0.7,
+                maxSizeMB: 0.2
+            });
+
             const supabase = createBrowserClient(
                 process.env.NEXT_PUBLIC_SUPABASE_URL!,
                 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
             );
 
-            const fileExt = file.name.split('.').pop();
-            const fileName = `homework/${questId}/${Date.now()}.${fileExt}`;
+            const fileName = `homework/${questId}/${Date.now()}.jpg`;
             const { error: uploadError } = await supabase.storage
                 .from('images')
-                .upload(fileName, file);
+                .upload(fileName, compressedFile);
 
             if (uploadError) throw uploadError;
 
@@ -201,7 +210,7 @@ export default function QuestSubmission({
 
             await submitQuestProof(questId, publicUrl);
             toast.success("인증 완료! 횟수가 추가되었습니다.");
-            router.refresh(); // 화면 새로고침
+            router.refresh();
 
         } catch (error) {
             console.error(error);
