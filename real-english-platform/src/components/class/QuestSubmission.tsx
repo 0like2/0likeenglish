@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, Check, Loader2, Headphones, FileText, CheckCircle2, XCircle, ClipboardCheck } from "lucide-react";
+import { Camera, Check, Loader2, Headphones, FileText, CheckCircle2, XCircle, ClipboardCheck, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { createBrowserClient } from "@supabase/ssr";
 import { submitQuestProof } from "@/app/actions/quest";
 import { getListeningBooks, getListeningRounds, submitListeningExam } from "@/lib/actions/listening";
+import { getEasyBooks, getEasyRounds, submitEasyExam } from "@/lib/actions/easy";
 import { getAvailableExams, submitExam } from "@/lib/actions/exam";
 
 interface QuestSubmissionProps {
@@ -20,9 +21,14 @@ interface QuestSubmissionProps {
     isCompleted: boolean;
 }
 
-// Listening OMR ranges (27 questions: 1-20, 25-28, 43-45)
-const LISTENING_RANGES = [
-    { start: 1, end: 20 },
+// Listening OMR ranges (17 questions: 1-17번)
+const LISTENING_ONLY_RANGES = [
+    { start: 1, end: 17 }
+];
+
+// Easy Problems OMR ranges (10 questions: 18-20, 25-28, 43-45번)
+const EASY_PROBLEMS_RANGES = [
+    { start: 18, end: 20 },
     { start: 25, end: 28 },
     { start: 43, end: 45 }
 ];
@@ -45,6 +51,17 @@ interface ListeningRound {
     title: string;
 }
 
+interface EasyBook {
+    id: string;
+    name: string;
+}
+
+interface EasyRound {
+    id: string;
+    round_number: number;
+    title: string;
+}
+
 interface MockExam {
     id: string;
     title: string;
@@ -61,20 +78,35 @@ export default function QuestSubmission({
     const router = useRouter();
     const [uploading, setUploading] = useState(false);
 
-    // Listening state
+    // Listening state (17문항: 1-17번)
     const [showListeningDialog, setShowListeningDialog] = useState(false);
     const [books, setBooks] = useState<ListeningBook[]>([]);
     const [selectedBook, setSelectedBook] = useState("");
     const [rounds, setRounds] = useState<ListeningRound[]>([]);
     const [selectedRound, setSelectedRound] = useState("");
     const [showListeningOMR, setShowListeningOMR] = useState(false);
-    const [listeningAnswers, setListeningAnswers] = useState<number[]>(new Array(27).fill(0));
+    const [listeningAnswers, setListeningAnswers] = useState<number[]>(new Array(17).fill(0));
     const [submitting, setSubmitting] = useState(false);
     const [listeningResult, setListeningResult] = useState<{
         score: number;
         correctCount: number;
         totalCount: number;
         details: { isCorrect: boolean; correctAnswer: number }[];
+    } | null>(null);
+
+    // Easy Problems state (10문항: 18-20, 25-28, 43-45번)
+    const [showEasyDialog, setShowEasyDialog] = useState(false);
+    const [easyBooks, setEasyBooks] = useState<EasyBook[]>([]);
+    const [selectedEasyBook, setSelectedEasyBook] = useState("");
+    const [easyRounds, setEasyRounds] = useState<EasyRound[]>([]);
+    const [selectedEasyRound, setSelectedEasyRound] = useState("");
+    const [showEasyOMR, setShowEasyOMR] = useState(false);
+    const [easyAnswers, setEasyAnswers] = useState<number[]>(new Array(10).fill(0));
+    const [easyResult, setEasyResult] = useState<{
+        score: number;
+        correctCount: number;
+        totalCount: number;
+        details: { isCorrect: boolean; correctAnswer: number; questionNumber: number }[];
     } | null>(null);
 
     // Mock Exam state
@@ -89,6 +121,7 @@ export default function QuestSubmission({
     } | null>(null);
 
     const isListening = questType?.includes('듣기') || questType?.toLowerCase().includes('listen');
+    const isEasyProblems = questType?.includes('쉬운문제') || questType?.toLowerCase().includes('easy');
     const isMockExam = questType?.includes('모의') || questType?.toLowerCase().includes('mock') || questType?.toLowerCase().includes('exam');
     const isVocab = questType?.includes('단어') || questType?.toLowerCase().includes('vocab');
 
@@ -98,6 +131,13 @@ export default function QuestSubmission({
             loadBooks();
         }
     }, [showListeningDialog]);
+
+    // Load easy books when dialog opens
+    useEffect(() => {
+        if (showEasyDialog && easyBooks.length === 0) {
+            loadEasyBooks();
+        }
+    }, [showEasyDialog]);
 
     // Load mock exams when dialog opens
     useEffect(() => {
@@ -116,6 +156,18 @@ export default function QuestSubmission({
         setSelectedRound("");
         const data = await getListeningRounds(bookId);
         setRounds(data);
+    }
+
+    async function loadEasyBooks() {
+        const data = await getEasyBooks();
+        setEasyBooks(data);
+    }
+
+    async function loadEasyRounds(bookId: string) {
+        setSelectedEasyBook(bookId);
+        setSelectedEasyRound("");
+        const data = await getEasyRounds(bookId);
+        setEasyRounds(data);
     }
 
     async function loadExams() {
@@ -159,16 +211,11 @@ export default function QuestSubmission({
         }
     };
 
-    // Listening OMR - convert question number to array index
-    const getListeningIndex = (qNum: number) => {
-        if (qNum <= 20) return qNum - 1;
-        if (qNum <= 28) return 20 + (qNum - 25);
-        return 24 + (qNum - 43);
-    };
-
+    // Listening OMR - simple 1-17 index (qNum - 1)
     const handleSelectListeningAnswer = (qNum: number, value: number) => {
         if (listeningResult) return;
-        const idx = getListeningIndex(qNum);
+        if (submitting) return; // 더블클릭 방지
+        const idx = qNum - 1;
         const newAnswers = [...listeningAnswers];
         newAnswers[idx] = value;
         setListeningAnswers(newAnswers);
@@ -180,11 +227,12 @@ export default function QuestSubmission({
             return;
         }
         setShowListeningOMR(true);
-        setListeningAnswers(new Array(27).fill(0));
+        setListeningAnswers(new Array(17).fill(0));
         setListeningResult(null);
     };
 
     const handleSubmitListening = async () => {
+        if (submitting) return; // 더블클릭 방지
         setSubmitting(true);
         const res = await submitListeningExam(selectedRound, listeningAnswers);
         setSubmitting(false);
@@ -208,14 +256,73 @@ export default function QuestSubmission({
         setShowListeningOMR(false);
         setSelectedBook("");
         setSelectedRound("");
-        setListeningAnswers(new Array(27).fill(0));
+        setListeningAnswers(new Array(17).fill(0));
         setListeningResult(null);
-        if (hadResult) router.refresh(); // 채점 완료 후 화면 새로고침
+        if (hadResult) router.refresh();
+    };
+
+    // Easy Problems OMR - convert question number to array index
+    const getEasyIndex = (qNum: number): number => {
+        if (qNum >= 18 && qNum <= 20) return qNum - 18;       // 0-2
+        if (qNum >= 25 && qNum <= 28) return 3 + (qNum - 25); // 3-6
+        if (qNum >= 43 && qNum <= 45) return 7 + (qNum - 43); // 7-9
+        return -1;
+    };
+
+    const handleSelectEasyAnswer = (qNum: number, value: number) => {
+        if (easyResult) return;
+        if (submitting) return; // 더블클릭 방지
+        const idx = getEasyIndex(qNum);
+        if (idx === -1) return;
+        const newAnswers = [...easyAnswers];
+        newAnswers[idx] = value;
+        setEasyAnswers(newAnswers);
+    };
+
+    const startEasyOMR = () => {
+        if (!selectedEasyRound) {
+            toast.error("회차를 선택해주세요.");
+            return;
+        }
+        setShowEasyOMR(true);
+        setEasyAnswers(new Array(10).fill(0));
+        setEasyResult(null);
+    };
+
+    const handleSubmitEasy = async () => {
+        if (submitting) return; // 더블클릭 방지
+        setSubmitting(true);
+        const res = await submitEasyExam(selectedEasyRound, easyAnswers);
+        setSubmitting(false);
+
+        if (res.success) {
+            setEasyResult({
+                score: res.score!,
+                correctCount: res.correctCount!,
+                totalCount: res.totalCount!,
+                details: res.details!
+            });
+            toast.success(`채점 완료! ${res.score}점`);
+        } else {
+            toast.error(res.message || "채점 실패");
+        }
+    };
+
+    const closeEasyDialog = () => {
+        const hadResult = !!easyResult;
+        setShowEasyDialog(false);
+        setShowEasyOMR(false);
+        setSelectedEasyBook("");
+        setSelectedEasyRound("");
+        setEasyAnswers(new Array(10).fill(0));
+        setEasyResult(null);
+        if (hadResult) router.refresh();
     };
 
     // Mock Exam OMR - simple 0-44 index mapping
     const handleSelectMockExamAnswer = (qNum: number, value: number) => {
         if (mockExamResult) return;
+        if (submitting) return; // 더블클릭 방지
         const idx = qNum - 1; // Questions 1-45 map to index 0-44
         const newAnswers = [...mockExamAnswers];
         newAnswers[idx] = value;
@@ -233,6 +340,7 @@ export default function QuestSubmission({
     };
 
     const handleSubmitMockExam = async () => {
+        if (submitting) return; // 더블클릭 방지
         setSubmitting(true);
         const res = await submitExam(selectedExam, mockExamAnswers);
         setSubmitting(false);
@@ -339,65 +447,115 @@ export default function QuestSubmission({
                                 </DialogFooter>
                             </div>
                         ) : (
-                            // OMR Grid
+                            // OMR Grid (17문항: 1-17번)
                             <div className="space-y-4 py-4">
-                                <div className="grid grid-cols-3 gap-4">
-                                    {LISTENING_RANGES.map((range, rIdx) => (
-                                        <div key={rIdx} className="space-y-2">
-                                            <h4 className="text-sm font-medium text-slate-500 border-b pb-1">
-                                                {range.start}~{range.end}번
-                                            </h4>
-                                            {Array.from({ length: range.end - range.start + 1 }).map((_, i) => {
-                                                const qNum = range.start + i;
-                                                const idx = getListeningIndex(qNum);
-                                                const selected = listeningAnswers[idx];
-                                                const detail = listeningResult?.details[idx];
+                                <div className="grid grid-cols-2 gap-4">
+                                    {/* 1-9번 */}
+                                    <div className="space-y-2">
+                                        <h4 className="text-sm font-medium text-slate-500 border-b pb-1">1~9번</h4>
+                                        {Array.from({ length: 9 }).map((_, i) => {
+                                            const qNum = i + 1;
+                                            const idx = qNum - 1;
+                                            const selected = listeningAnswers[idx];
+                                            const detail = listeningResult?.details[idx];
 
-                                                return (
-                                                    <div key={qNum} className="flex items-center gap-1">
-                                                        <span className={`w-6 text-right text-sm font-medium ${
-                                                            listeningResult ? (detail?.isCorrect ? "text-green-600" : "text-red-600") : "text-slate-600"
-                                                        }`}>
-                                                            {qNum}.
-                                                        </span>
-                                                        <div className="flex gap-0.5">
-                                                            {[1, 2, 3, 4, 5].map((opt) => {
-                                                                const isSelected = selected === opt;
-                                                                const isCorrect = detail?.correctAnswer === opt;
-                                                                const isWrong = listeningResult && isSelected && !detail?.isCorrect;
+                                            return (
+                                                <div key={qNum} className="flex items-center gap-1">
+                                                    <span className={`w-6 text-right text-sm font-medium ${
+                                                        listeningResult ? (detail?.isCorrect ? "text-green-600" : "text-red-600") : "text-slate-600"
+                                                    }`}>
+                                                        {qNum}.
+                                                    </span>
+                                                    <div className="flex gap-0.5">
+                                                        {[1, 2, 3, 4, 5].map((opt) => {
+                                                            const isSelected = selected === opt;
+                                                            const isCorrect = detail?.correctAnswer === opt;
+                                                            const isWrong = listeningResult && isSelected && !detail?.isCorrect;
 
-                                                                return (
-                                                                    <button
-                                                                        key={opt}
-                                                                        onClick={() => handleSelectListeningAnswer(qNum, opt)}
-                                                                        disabled={!!listeningResult}
-                                                                        className={`w-6 h-6 rounded-full text-xs font-medium transition-all ${
-                                                                            listeningResult
-                                                                                ? isCorrect
-                                                                                    ? "bg-green-500 text-white"
-                                                                                    : isWrong
-                                                                                        ? "bg-red-500 text-white"
-                                                                                        : "bg-slate-100 text-slate-400"
-                                                                                : isSelected
-                                                                                    ? "bg-purple-600 text-white"
-                                                                                    : "bg-slate-100 text-slate-600 hover:bg-purple-100"
-                                                                        }`}
-                                                                    >
-                                                                        {opt}
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                        {listeningResult && (
-                                                            detail?.isCorrect
-                                                                ? <CheckCircle2 className="w-3 h-3 text-green-500" />
-                                                                : <XCircle className="w-3 h-3 text-red-500" />
-                                                        )}
+                                                            return (
+                                                                <button
+                                                                    key={opt}
+                                                                    onClick={() => handleSelectListeningAnswer(qNum, opt)}
+                                                                    disabled={!!listeningResult || submitting}
+                                                                    className={`w-6 h-6 rounded-full text-xs font-medium transition-all ${
+                                                                        listeningResult
+                                                                            ? isCorrect
+                                                                                ? "bg-green-500 text-white"
+                                                                                : isWrong
+                                                                                    ? "bg-red-500 text-white"
+                                                                                    : "bg-slate-100 text-slate-400"
+                                                                            : isSelected
+                                                                                ? "bg-purple-600 text-white"
+                                                                                : "bg-slate-100 text-slate-600 hover:bg-purple-100"
+                                                                    }`}
+                                                                >
+                                                                    {opt}
+                                                                </button>
+                                                            );
+                                                        })}
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
-                                    ))}
+                                                    {listeningResult && (
+                                                        detail?.isCorrect
+                                                            ? <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                                            : <XCircle className="w-3 h-3 text-red-500" />
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {/* 10-17번 */}
+                                    <div className="space-y-2">
+                                        <h4 className="text-sm font-medium text-slate-500 border-b pb-1">10~17번</h4>
+                                        {Array.from({ length: 8 }).map((_, i) => {
+                                            const qNum = 10 + i;
+                                            const idx = qNum - 1;
+                                            const selected = listeningAnswers[idx];
+                                            const detail = listeningResult?.details[idx];
+
+                                            return (
+                                                <div key={qNum} className="flex items-center gap-1">
+                                                    <span className={`w-6 text-right text-sm font-medium ${
+                                                        listeningResult ? (detail?.isCorrect ? "text-green-600" : "text-red-600") : "text-slate-600"
+                                                    }`}>
+                                                        {qNum}.
+                                                    </span>
+                                                    <div className="flex gap-0.5">
+                                                        {[1, 2, 3, 4, 5].map((opt) => {
+                                                            const isSelected = selected === opt;
+                                                            const isCorrect = detail?.correctAnswer === opt;
+                                                            const isWrong = listeningResult && isSelected && !detail?.isCorrect;
+
+                                                            return (
+                                                                <button
+                                                                    key={opt}
+                                                                    onClick={() => handleSelectListeningAnswer(qNum, opt)}
+                                                                    disabled={!!listeningResult || submitting}
+                                                                    className={`w-6 h-6 rounded-full text-xs font-medium transition-all ${
+                                                                        listeningResult
+                                                                            ? isCorrect
+                                                                                ? "bg-green-500 text-white"
+                                                                                : isWrong
+                                                                                    ? "bg-red-500 text-white"
+                                                                                    : "bg-slate-100 text-slate-400"
+                                                                            : isSelected
+                                                                                ? "bg-purple-600 text-white"
+                                                                                : "bg-slate-100 text-slate-600 hover:bg-purple-100"
+                                                                    }`}
+                                                                >
+                                                                    {opt}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    {listeningResult && (
+                                                        detail?.isCorrect
+                                                            ? <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                                            : <XCircle className="w-3 h-3 text-red-500" />
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
 
                                 {listeningResult && (
@@ -582,6 +740,178 @@ export default function QuestSubmission({
                                         </Button>
                                     ) : (
                                         <Button className="w-full" onClick={closeMockExamDialog}>
+                                            닫기
+                                        </Button>
+                                    )}
+                                </DialogFooter>
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
+            </>
+        );
+    }
+
+    // Easy Problems quest (쉬운문제풀이)
+    if (isEasyProblems) {
+        return (
+            <>
+                <Button
+                    variant="outline"
+                    className="w-full border-dashed border-orange-300 text-orange-600 hover:bg-orange-50"
+                    onClick={() => setShowEasyDialog(true)}
+                >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    쉬운문제 풀기
+                </Button>
+
+                <Dialog open={showEasyDialog} onOpenChange={(open) => !open && closeEasyDialog()}>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <BookOpen className="w-5 h-5 text-orange-600" />
+                                쉬운문제풀이 (18-20, 25-28, 43-45번)
+                            </DialogTitle>
+                        </DialogHeader>
+
+                        {!showEasyOMR ? (
+                            // Book/Round Selection
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">교재 선택</label>
+                                    <Select value={selectedEasyBook} onValueChange={loadEasyRounds}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="교재를 선택하세요" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {easyBooks.map((book) => (
+                                                <SelectItem key={book.id} value={book.id}>
+                                                    {book.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {selectedEasyBook && (
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">회차 선택</label>
+                                        <Select value={selectedEasyRound} onValueChange={setSelectedEasyRound}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="회차를 선택하세요" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {easyRounds.map((round) => (
+                                                    <SelectItem key={round.id} value={round.id}>
+                                                        {round.round_number}회 - {round.title}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+
+                                <DialogFooter>
+                                    <Button variant="outline" onClick={closeEasyDialog}>취소</Button>
+                                    <Button
+                                        className="bg-orange-600 hover:bg-orange-700"
+                                        onClick={startEasyOMR}
+                                        disabled={!selectedEasyRound}
+                                    >
+                                        시작하기
+                                    </Button>
+                                </DialogFooter>
+                            </div>
+                        ) : (
+                            // OMR Grid (10문항: 18-20, 25-28, 43-45번)
+                            <div className="space-y-4 py-4">
+                                <div className="grid grid-cols-3 gap-4">
+                                    {EASY_PROBLEMS_RANGES.map((range, rIdx) => (
+                                        <div key={rIdx} className="space-y-2">
+                                            <h4 className="text-sm font-medium text-slate-500 border-b pb-1">
+                                                {range.start}~{range.end}번
+                                            </h4>
+                                            {Array.from({ length: range.end - range.start + 1 }).map((_, i) => {
+                                                const qNum = range.start + i;
+                                                const idx = getEasyIndex(qNum);
+                                                const selected = easyAnswers[idx];
+                                                const detail = easyResult?.details[idx];
+
+                                                return (
+                                                    <div key={qNum} className="flex items-center gap-1">
+                                                        <span className={`w-6 text-right text-sm font-medium ${
+                                                            easyResult ? (detail?.isCorrect ? "text-green-600" : "text-red-600") : "text-slate-600"
+                                                        }`}>
+                                                            {qNum}.
+                                                        </span>
+                                                        <div className="flex gap-0.5">
+                                                            {[1, 2, 3, 4, 5].map((opt) => {
+                                                                const isSelected = selected === opt;
+                                                                const isCorrect = detail?.correctAnswer === opt;
+                                                                const isWrong = easyResult && isSelected && !detail?.isCorrect;
+
+                                                                return (
+                                                                    <button
+                                                                        key={opt}
+                                                                        onClick={() => handleSelectEasyAnswer(qNum, opt)}
+                                                                        disabled={!!easyResult || submitting}
+                                                                        className={`w-6 h-6 rounded-full text-xs font-medium transition-all ${
+                                                                            easyResult
+                                                                                ? isCorrect
+                                                                                    ? "bg-green-500 text-white"
+                                                                                    : isWrong
+                                                                                        ? "bg-red-500 text-white"
+                                                                                        : "bg-slate-100 text-slate-400"
+                                                                                : isSelected
+                                                                                    ? "bg-orange-600 text-white"
+                                                                                    : "bg-slate-100 text-slate-600 hover:bg-orange-100"
+                                                                        }`}
+                                                                    >
+                                                                        {opt}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        {easyResult && (
+                                                            detail?.isCorrect
+                                                                ? <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                                                : <XCircle className="w-3 h-3 text-red-500" />
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {easyResult && (
+                                    <div className="bg-orange-50 p-4 rounded-lg text-center">
+                                        <p className="text-sm text-orange-600 mb-1">채점 결과</p>
+                                        <p className="text-3xl font-bold text-orange-700">{easyResult.score}점</p>
+                                        <p className="text-sm text-orange-600">
+                                            {easyResult.correctCount} / {easyResult.totalCount} 정답
+                                        </p>
+                                    </div>
+                                )}
+
+                                <DialogFooter>
+                                    {!easyResult ? (
+                                        <Button
+                                            className="w-full bg-orange-600 hover:bg-orange-700"
+                                            onClick={handleSubmitEasy}
+                                            disabled={submitting}
+                                        >
+                                            {submitting ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                    채점 중...
+                                                </>
+                                            ) : (
+                                                "채점하기"
+                                            )}
+                                        </Button>
+                                    ) : (
+                                        <Button className="w-full" onClick={closeEasyDialog}>
                                             닫기
                                         </Button>
                                     )}

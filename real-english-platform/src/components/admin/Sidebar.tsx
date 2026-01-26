@@ -12,7 +12,8 @@ import {
     Settings,
     LogOut,
     LayoutDashboard,
-    ClipboardList
+    ClipboardList,
+    FileQuestion
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
     { label: "수업/반 관리", href: "/admin/classes", icon: BookOpen },
     { label: "모의고사 관리", href: "/admin/exams", icon: ClipboardList },
     { label: "듣기 관리", href: "/admin/listening", icon: Headphones },
+    { label: "쉬운문제 관리", href: "/admin/easy", icon: FileQuestion },
     { label: "블로그/공지", href: "/admin/blog", icon: PenTool },
 ];
 

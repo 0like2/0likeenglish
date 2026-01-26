@@ -28,6 +28,7 @@ interface EditClassDialogProps {
         schedule?: string; // "화요일 17:00 - 19:00"
         quest_vocab_on?: boolean;
         quest_listening_on?: boolean;
+        quest_easy_on?: boolean;
         quest_mock_on?: boolean;
         quest_frequency?: number;
     };
@@ -44,6 +45,8 @@ export default function EditClassDialog({ classData }: EditClassDialogProps) {
         vocab_freq: 3,
         quest_listening_on: classData.quest_listening_on ?? true,
         listening_freq: 3,
+        quest_easy_on: classData.quest_easy_on ?? false,
+        easy_freq: 3,
         quest_mock_on: classData.quest_mock_on ?? false,
         mock_freq: 1
     });
@@ -69,6 +72,7 @@ export default function EditClassDialog({ classData }: EditClassDialogProps) {
                 price: classData.price?.toString() || "",
                 quest_vocab_on: classData.quest_vocab_on ?? true,
                 quest_listening_on: classData.quest_listening_on ?? true,
+                quest_easy_on: classData.quest_easy_on ?? false,
                 quest_mock_on: classData.quest_mock_on ?? false,
             }));
 
@@ -83,6 +87,7 @@ export default function EditClassDialog({ classData }: EditClassDialogProps) {
                         ...prev,
                         vocab_freq: settings.vocab_freq,
                         listening_freq: settings.listening_freq,
+                        easy_freq: settings.easy_freq,
                         mock_freq: settings.mock_freq
                     }));
                 } catch (e) {
@@ -115,10 +120,12 @@ export default function EditClassDialog({ classData }: EditClassDialogProps) {
                 end_time: endTime,
                 quest_vocab_on: formData.quest_vocab_on,
                 quest_listening_on: formData.quest_listening_on,
+                quest_easy_on: formData.quest_easy_on,
                 quest_mock_on: formData.quest_mock_on,
                 quest_frequencies: {
                     vocab: formData.vocab_freq,
                     listening: formData.listening_freq,
+                    easy: formData.easy_freq,
                     mock: formData.mock_freq
                 }
             });
@@ -241,6 +248,29 @@ export default function EditClassDialog({ classData }: EditClassDialogProps) {
                                             className="w-16 h-8 text-center"
                                             value={formData.listening_freq}
                                             onChange={(e) => setFormData({ ...formData, listening_freq: parseInt(e.target.value) || 0 })}
+                                            min={1} max={7}
+                                        />
+                                        <span className="text-xs text-slate-500">회 / 주</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Easy Problems Row */}
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                    <Switch
+                                        checked={formData.quest_easy_on}
+                                        onCheckedChange={(c) => setFormData({ ...formData, quest_easy_on: c })}
+                                    />
+                                    <Label className="font-medium">쉬운문제풀이</Label>
+                                </div>
+                                {formData.quest_easy_on && (
+                                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
+                                        <Input
+                                            type="number"
+                                            className="w-16 h-8 text-center"
+                                            value={formData.easy_freq}
+                                            onChange={(e) => setFormData({ ...formData, easy_freq: parseInt(e.target.value) || 0 })}
                                             min={1} max={7}
                                         />
                                         <span className="text-xs text-slate-500">회 / 주</span>

@@ -10,18 +10,18 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus, BookOpen, FileText, ChevronRight, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
-import { getListeningBooks, createListeningBook, getListeningRounds, createListeningRound } from "@/lib/actions/listening";
+import { getEasyBooks, createEasyBook, getEasyRounds, createEasyRound } from "@/lib/actions/easy";
 
-interface ListeningBook {
+interface EasyBook {
     id: string;
     name: string;
     description: string;
     total_rounds: number;
     is_active: boolean;
-    listening_rounds?: { count: number }[];
+    easy_rounds?: { count: number }[];
 }
 
-interface ListeningRound {
+interface EasyRound {
     id: string;
     book_id: string;
     round_number: number;
@@ -30,10 +30,10 @@ interface ListeningRound {
     question_count: number;
 }
 
-export default function AdminListeningPage() {
-    const [books, setBooks] = useState<ListeningBook[]>([]);
-    const [selectedBook, setSelectedBook] = useState<ListeningBook | null>(null);
-    const [rounds, setRounds] = useState<ListeningRound[]>([]);
+export default function AdminEasyPage() {
+    const [books, setBooks] = useState<EasyBook[]>([]);
+    const [selectedBook, setSelectedBook] = useState<EasyBook | null>(null);
+    const [rounds, setRounds] = useState<EasyRound[]>([]);
     const [loading, setLoading] = useState(true);
 
     // New Book Form
@@ -55,14 +55,14 @@ export default function AdminListeningPage() {
 
     async function loadBooks() {
         setLoading(true);
-        const data = await getListeningBooks();
+        const data = await getEasyBooks();
         setBooks(data);
         setLoading(false);
     }
 
-    async function loadRounds(book: ListeningBook) {
+    async function loadRounds(book: EasyBook) {
         setSelectedBook(book);
-        const data = await getListeningRounds(book.id);
+        const data = await getEasyRounds(book.id);
         setRounds(data);
         // Set next round number
         setNewRoundNumber(data.length > 0 ? Math.max(...data.map(r => r.round_number)) + 1 : 1);
@@ -73,9 +73,10 @@ export default function AdminListeningPage() {
             toast.error("교재명을 입력해주세요.");
             return;
         }
+        if (submittingBook) return; // 더블클릭 방지
 
         setSubmittingBook(true);
-        const result = await createListeningBook({
+        const result = await createEasyBook({
             name: newBookName,
             description: newBookDesc
         });
@@ -94,6 +95,7 @@ export default function AdminListeningPage() {
 
     async function handleCreateRound() {
         if (!selectedBook) return;
+        if (submittingRound) return; // 더블클릭 방지
 
         // Parse answers (comma or space separated)
         const answersArray = newRoundAnswers
@@ -101,13 +103,13 @@ export default function AdminListeningPage() {
             .map(s => parseInt(s.trim()))
             .filter(n => !isNaN(n) && n >= 1 && n <= 5);
 
-        if (answersArray.length !== 17) {
-            toast.error(`정답은 17개여야 합니다. (1-17번, 현재 ${answersArray.length}개)`);
+        if (answersArray.length !== 10) {
+            toast.error(`정답은 10개여야 합니다. (18-20, 25-28, 43-45번, 현재 ${answersArray.length}개)`);
             return;
         }
 
         setSubmittingRound(true);
-        const result = await createListeningRound({
+        const result = await createEasyRound({
             book_id: selectedBook.id,
             round_number: newRoundNumber,
             title: newRoundTitle || `${newRoundNumber}회`,
@@ -129,7 +131,7 @@ export default function AdminListeningPage() {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
             </div>
         );
     }
@@ -138,25 +140,25 @@ export default function AdminListeningPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">듣기 관리</h1>
-                    <p className="text-slate-500">듣기 교재별 정답을 관리합니다.</p>
+                    <h1 className="text-2xl font-bold text-slate-900">쉬운문제 관리</h1>
+                    <p className="text-slate-500">쉬운문제 교재별 정답을 관리합니다. (18-20, 25-28, 43-45번)</p>
                 </div>
                 <Dialog open={showNewBook} onOpenChange={setShowNewBook}>
                     <DialogTrigger asChild>
-                        <Button className="gap-2">
+                        <Button className="gap-2 bg-orange-600 hover:bg-orange-700">
                             <Plus className="w-4 h-4" />
                             새 교재 추가
                         </Button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>새 듣기 교재 추가</DialogTitle>
+                            <DialogTitle>새 쉬운문제 교재 추가</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
                                 <Label>교재명 *</Label>
                                 <Input
-                                    placeholder="예: 2024 수능특강 영어듣기"
+                                    placeholder="예: 2024 수능특강 쉬운문제"
                                     value={newBookName}
                                     onChange={(e) => setNewBookName(e.target.value)}
                                 />
@@ -172,7 +174,11 @@ export default function AdminListeningPage() {
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setShowNewBook(false)}>취소</Button>
-                            <Button onClick={handleCreateBook} disabled={submittingBook}>
+                            <Button
+                                onClick={handleCreateBook}
+                                disabled={submittingBook}
+                                className="bg-orange-600 hover:bg-orange-700"
+                            >
                                 {submittingBook ? <Loader2 className="w-4 h-4 animate-spin" /> : "추가"}
                             </Button>
                         </DialogFooter>
@@ -198,7 +204,7 @@ export default function AdminListeningPage() {
                                     key={book.id}
                                     className={`p-4 cursor-pointer transition-all hover:shadow-md ${
                                         selectedBook?.id === book.id
-                                            ? "border-blue-500 bg-blue-50"
+                                            ? "border-orange-500 bg-orange-50"
                                             : "border-slate-200"
                                     }`}
                                     onClick={() => loadRounds(book)}
@@ -207,7 +213,7 @@ export default function AdminListeningPage() {
                                         <div>
                                             <h3 className="font-medium text-slate-900">{book.name}</h3>
                                             <p className="text-sm text-slate-500">
-                                                {book.listening_rounds?.[0]?.count || 0}개 회차
+                                                {book.easy_rounds?.[0]?.count || 0}개 회차
                                             </p>
                                         </div>
                                         <ChevronRight className="w-5 h-5 text-slate-400" />
@@ -229,7 +235,7 @@ export default function AdminListeningPage() {
                                 </h2>
                                 <Dialog open={showNewRound} onOpenChange={setShowNewRound}>
                                     <DialogTrigger asChild>
-                                        <Button size="sm" variant="outline" className="gap-2">
+                                        <Button size="sm" variant="outline" className="gap-2 border-orange-300 text-orange-600 hover:bg-orange-50">
                                             <Plus className="w-4 h-4" />
                                             회차 추가
                                         </Button>
@@ -259,9 +265,9 @@ export default function AdminListeningPage() {
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
-                                                <Label>정답 (17개) *</Label>
+                                                <Label>정답 (10개) *</Label>
                                                 <Textarea
-                                                    placeholder="정답을 입력하세요 (콤마 또는 공백 구분)&#10;예: 3,1,2,5,4,1,2,3,4,5,5,4,3,2,1,2,3"
+                                                    placeholder="정답을 입력하세요 (콤마 또는 공백 구분)&#10;예: 3,1,2,5,4,1,2,3,4,5"
                                                     rows={3}
                                                     value={newRoundAnswers}
                                                     onChange={(e) => setNewRoundAnswers(e.target.value)}
@@ -270,14 +276,19 @@ export default function AdminListeningPage() {
                                                     현재 입력: {newRoundAnswers.split(/[\s,]+/).filter(s => s.trim() && !isNaN(parseInt(s))).length}개
                                                 </p>
                                             </div>
-                                            <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-600">
+                                            <div className="bg-orange-50 p-3 rounded-lg text-sm text-orange-700">
                                                 <p className="font-medium mb-1">문항 순서:</p>
-                                                <p>1~17번 (총 17문항) - 듣기 문제만</p>
+                                                <p>18~20번, 25~28번, 43~45번 (총 10문항)</p>
+                                                <p className="text-xs mt-1 text-orange-600">순서대로 18,19,20,25,26,27,28,43,44,45번 정답 입력</p>
                                             </div>
                                         </div>
                                         <DialogFooter>
                                             <Button variant="outline" onClick={() => setShowNewRound(false)}>취소</Button>
-                                            <Button onClick={handleCreateRound} disabled={submittingRound}>
+                                            <Button
+                                                onClick={handleCreateRound}
+                                                disabled={submittingRound}
+                                                className="bg-orange-600 hover:bg-orange-700"
+                                            >
                                                 {submittingRound ? <Loader2 className="w-4 h-4 animate-spin" /> : "추가"}
                                             </Button>
                                         </DialogFooter>
@@ -295,7 +306,7 @@ export default function AdminListeningPage() {
                                         <Card key={round.id} className="p-4 border-slate-200">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
-                                                    <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                                                    <Badge variant="outline" className="bg-orange-50 text-orange-700">
                                                         {round.round_number}회
                                                     </Badge>
                                                     <span className="font-medium text-slate-900">
@@ -310,7 +321,7 @@ export default function AdminListeningPage() {
                                                 </div>
                                             </div>
                                             <div className="mt-2 text-xs text-slate-400 truncate">
-                                                정답: {(round.answers as number[]).slice(0, 10).join(', ')}...
+                                                정답: {(round.answers as number[]).join(', ')}
                                             </div>
                                         </Card>
                                     ))}

@@ -210,6 +210,7 @@ async function syncQuests(supabase: any, classId: string, data: any) {
     const quests = [
         { key: 'quest_vocab_on', title: '영단어 암기', freq: data.quest_frequencies?.vocab || data.quest_frequency || 3 },
         { key: 'quest_listening_on', title: '듣기평가', freq: data.quest_frequencies?.listening || data.quest_frequency || 3 },
+        { key: 'quest_easy_on', title: '쉬운문제풀이', freq: data.quest_frequencies?.easy || data.quest_frequency || 3 },
         { key: 'quest_mock_on', title: '모의고사', freq: data.quest_frequencies?.mock || 1 }
     ];
 
@@ -362,15 +363,17 @@ export async function getClassSettings(classId: string) {
         .select('*')
         .eq('class_id', classId);
 
-    const settings = { vocab_freq: 3, listening_freq: 3, mock_freq: 1 };
+    const settings = { vocab_freq: 3, listening_freq: 3, easy_freq: 3, mock_freq: 1 };
 
     if (quests && quests.length > 0) {
         const vocab = quests.find((q: any) => q.title === '영단어 암기');
         const listening = quests.find((q: any) => q.title === '듣기평가');
+        const easy = quests.find((q: any) => q.title === '쉬운문제풀이');
         const mock = quests.find((q: any) => q.title === '모의고사');
 
         if (vocab) settings.vocab_freq = vocab.weekly_frequency;
         if (listening) settings.listening_freq = listening.weekly_frequency;
+        if (easy) settings.easy_freq = easy.weekly_frequency;
         if (mock) settings.mock_freq = mock.weekly_frequency;
     } else {
         // Fallback to classes table
@@ -378,6 +381,7 @@ export async function getClassSettings(classId: string) {
         if (data) {
             settings.vocab_freq = data.quest_frequency;
             settings.listening_freq = data.quest_frequency;
+            settings.easy_freq = data.quest_frequency;
         }
     }
 
@@ -414,6 +418,21 @@ export async function assignClass(studentId: string, classId: string) {
             });
             if (error) throw error;
         }
+
+        // Get names for activity log
+        const { data: student } = await supabase.from('users').select('name').eq('id', studentId).single();
+        const { data: classInfo } = await supabase.from('classes').select('name').eq('id', classId).single();
+        const studentName = student?.name || '학생';
+        const className = classInfo?.name || '수업';
+
+        // Log activity
+        await logActivity(
+            studentId,
+            studentName,
+            'class_assign',
+            `${studentName} 학생이 '${className}'에 배정되었습니다.`,
+            { studentId, classId, className }
+        );
 
         revalidatePath('/admin/students');
         return { success: true };
@@ -499,6 +518,85 @@ export async function deleteBlogPost(postId: string) {
     }
 }
 
+// --- Activity Log Actions ---
+
+export async function logActivity(
+    userId: string | null,
+    userName: string | null,
+    actionType: 'submit' | 'exam' | 'payment' | 'feedback' | 'listening' | 'class_assign',
+    description: string,
+    metadata: Record<string, any> = {}
+) {
+    try {
+        const supabase = getAdminClient();
+
+        const { error } = await supabase.from('activity_logs').insert({
+            user_id: userId,
+            user_name: userName,
+            action_type: actionType,
+            description,
+            metadata,
+            created_at: new Date().toISOString()
+        });
+
+        if (error) {
+            console.error('Error logging activity:', error);
+        }
+
+        revalidatePath('/admin');
+    } catch (error) {
+        console.error('Failed to log activity:', error);
+    }
+}
+
+// --- Activity Log Management ---
+
+export async function deleteActivityLog(logId: string) {
+    try {
+        await checkTeacherRole();
+        const supabase = getAdminClient();
+
+        const { error } = await supabase
+            .from('activity_logs')
+            .delete()
+            .eq('id', logId);
+
+        if (error) {
+            console.error('Delete Activity Log Error:', error);
+            return { success: false, message: error.message };
+        }
+
+        revalidatePath('/admin');
+        return { success: true, message: "로그가 삭제되었습니다." };
+    } catch (error: any) {
+        console.error('Delete Activity Log Error:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+export async function updateActivityLog(logId: string, description: string) {
+    try {
+        await checkTeacherRole();
+        const supabase = getAdminClient();
+
+        const { error } = await supabase
+            .from('activity_logs')
+            .update({ description })
+            .eq('id', logId);
+
+        if (error) {
+            console.error('Update Activity Log Error:', error);
+            return { success: false, message: error.message };
+        }
+
+        revalidatePath('/admin');
+        return { success: true, message: "로그가 수정되었습니다." };
+    } catch (error: any) {
+        console.error('Update Activity Log Error:', error);
+        return { success: false, message: error.message };
+    }
+}
+
 // --- Payment Management Actions ---
 
 export async function updatePayment(studentId: string, data: {
@@ -552,6 +650,19 @@ export async function updatePayment(studentId: string, data: {
 
             if (error) throw error;
         }
+
+        // Get student name for activity log
+        const { data: student } = await supabase.from('users').select('name').eq('id', studentId).single();
+        const studentName = student?.name || '학생';
+
+        // Log activity
+        await logActivity(
+            studentId,
+            studentName,
+            'payment',
+            `${studentName} 학생의 수강권이 업데이트되었습니다. (${data.class_count}회, ${data.status === 'active' ? '활성' : data.status === 'pending' ? '대기' : '만료'})`,
+            { studentId, classCount: data.class_count, status: data.status, expiryDate: data.expiry_date }
+        );
 
         revalidatePath('/admin/students');
         revalidatePath('/dashboard');
