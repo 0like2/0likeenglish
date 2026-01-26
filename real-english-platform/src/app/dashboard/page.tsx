@@ -13,7 +13,11 @@ import { ko } from "date-fns/locale";
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-    const { user, payment, classInfo, recentLessons, quests } = await getDashboardData();
+    const [dashboardData, reportData] = await Promise.all([
+        getDashboardData(),
+        getReportData()
+    ]);
+    const { user, payment, classInfo, recentLessons, quests } = dashboardData;
     const today = format(new Date(), "yyyy년 MM월 dd일 (EEE)", { locale: ko });
 
     // Status mapping & Dates
@@ -70,7 +74,7 @@ export default async function DashboardPage() {
                 {/* Main Content Row */}
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     <LearningPath quests={quests || []} />
-                    <MonthlyReport />
+                    <MonthlyReport data={reportData} />
                 </div>
             </div>
         </div>
