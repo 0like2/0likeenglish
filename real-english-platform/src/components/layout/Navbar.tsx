@@ -11,6 +11,7 @@ import { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import NotificationBell from "@/components/notification/NotificationBell";
 
 const NAV_ITEMS = [
     { label: "홈", href: "/" },
@@ -77,6 +78,9 @@ export default function Navbar({ user }: NavbarProps) {
                                 </Button>
                             )}
 
+                            {/* 알림 벨 */}
+                            <NotificationBell />
+
                             <Button asChild size="sm" className="bg-slate-900 hover:bg-slate-800 text-white rounded-full px-5">
                                 <Link href="/dashboard">
                                     마이페이지
@@ -136,6 +140,10 @@ export default function Navbar({ user }: NavbarProps) {
 
                     {user ? (
                         <>
+                            {/* 모바일 알림 */}
+                            <div className="flex justify-center">
+                                <NotificationBell />
+                            </div>
                             <Button asChild className="w-full bg-slate-900 text-white" onClick={() => setMobileMenuOpen(false)}>
                                 <Link href="/dashboard">
                                     마이페이지

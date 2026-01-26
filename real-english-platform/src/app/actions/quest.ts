@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/actions/admin";
+import { notifyAdmins } from "@/lib/actions/notification";
 
 export async function submitQuestProof(questId: string, imagePath: string) {
     try {
@@ -68,6 +69,17 @@ export async function submitQuestProof(questId: string, imagePath: string) {
             `${userName} 학생이 '${questTitle}'를 제출했습니다. (${currentCount}회차)`,
             { questId, questTitle, currentCount, status }
         );
+
+        // 관리자에게 알림 전송
+        await notifyAdmins({
+            senderId: user.id,
+            senderName: userName,
+            type: 'homework_submit',
+            title: '새 숙제 제출',
+            message: `${userName} 학생이 '${questTitle}'를 제출했습니다.`,
+            link: '/admin',
+            metadata: { questId, questTitle, currentCount, status }
+        });
 
         revalidatePath('/dashboard');
         revalidatePath('/class/[id]');
