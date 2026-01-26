@@ -175,6 +175,56 @@ export async function getStudentsData(options?: { includeTestAccounts?: boolean 
     });
 }
 
+// 학부모 목록 조회
+export async function getParentsData() {
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    let supabase;
+
+    if (serviceRoleKey) {
+        supabase = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            serviceRoleKey
+        );
+    } else {
+        supabase = await createClient();
+    }
+
+    const { data: parents, error } = await supabase
+        .from('users')
+        .select(`
+            *,
+            parent_student_links(
+                student_id,
+                student:users!parent_student_links_student_id_fkey(id, name, email)
+            )
+        `)
+        .eq('role', 'parent')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching parents:', error);
+        return [];
+    }
+
+    return parents.map(p => {
+        const linkedChildren = p.parent_student_links?.map((link: any) => ({
+            id: link.student?.id,
+            name: link.student?.name,
+            email: link.student?.email
+        })) || [];
+
+        return {
+            id: p.id,
+            name: p.name,
+            email: p.email,
+            linkedChildren,
+            linkedCount: linkedChildren.length,
+            createdAt: new Date(p.created_at).toLocaleDateString(),
+            isTestAccount: (p.email?.toLowerCase() || '').includes('test')
+        };
+    });
+}
+
 
 export async function getClassesData() {
     // Use Service Role to bypass RLS for admin dashboard
