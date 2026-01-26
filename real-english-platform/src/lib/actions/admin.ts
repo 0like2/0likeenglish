@@ -858,3 +858,156 @@ export async function resetQuestProgress(id: string) {
         return { success: false, message: error.message };
     }
 }
+
+// ============================================
+// 학생별 제출 내역 조회
+// ============================================
+
+export async function getStudentsWithSubmissionCounts() {
+    try {
+        await checkTeacherRole();
+        const supabase = getAdminClient();
+
+        // Get all students (role = 'student')
+        const { data: students } = await supabase
+            .from('users')
+            .select('id, name, email')
+            .eq('role', 'student')
+            .order('name');
+
+        if (!students || students.length === 0) {
+            return [];
+        }
+
+        const studentIds = students.map(s => s.id);
+
+        // Get submission counts for each type
+        const [listeningCounts, easyCounts, questCounts] = await Promise.all([
+            supabase
+                .from('listening_submissions')
+                .select('student_id')
+                .in('student_id', studentIds),
+            supabase
+                .from('easy_submissions')
+                .select('student_id')
+                .in('student_id', studentIds),
+            supabase
+                .from('student_quest_progress')
+                .select('student_id')
+                .in('student_id', studentIds)
+                .not('last_submitted_at', 'is', null)
+        ]);
+
+        // Count submissions per student
+        const countMap = new Map<string, { listening: number; easy: number; quest: number }>();
+        studentIds.forEach(id => countMap.set(id, { listening: 0, easy: 0, quest: 0 }));
+
+        (listeningCounts.data || []).forEach((s: any) => {
+            const counts = countMap.get(s.student_id);
+            if (counts) counts.listening++;
+        });
+        (easyCounts.data || []).forEach((s: any) => {
+            const counts = countMap.get(s.student_id);
+            if (counts) counts.easy++;
+        });
+        (questCounts.data || []).forEach((s: any) => {
+            const counts = countMap.get(s.student_id);
+            if (counts) counts.quest++;
+        });
+
+        return students.map(s => ({
+            id: s.id,
+            name: s.name || s.email?.split('@')[0] || '알 수 없음',
+            email: s.email,
+            counts: countMap.get(s.id) || { listening: 0, easy: 0, quest: 0 },
+            totalCount: (countMap.get(s.id)?.listening || 0) +
+                       (countMap.get(s.id)?.easy || 0) +
+                       (countMap.get(s.id)?.quest || 0)
+        })).filter(s => s.totalCount > 0); // Only show students with submissions
+    } catch (error: any) {
+        console.error('Get Students With Submission Counts Error:', error);
+        return [];
+    }
+}
+
+export async function getSubmissionsByStudent(studentId: string) {
+    try {
+        await checkTeacherRole();
+        const supabase = getAdminClient();
+
+        // Get all submissions for this student
+        const [listeningData, easyData, questData] = await Promise.all([
+            supabase
+                .from('listening_submissions')
+                .select(`
+                    id,
+                    score,
+                    correct_count,
+                    total_count,
+                    created_at,
+                    listening_rounds(round_number, title, listening_books(name))
+                `)
+                .eq('student_id', studentId)
+                .order('created_at', { ascending: false }),
+            supabase
+                .from('easy_submissions')
+                .select(`
+                    id,
+                    score,
+                    correct_count,
+                    total_count,
+                    created_at,
+                    easy_rounds(round_number, title, easy_books(name))
+                `)
+                .eq('student_id', studentId)
+                .order('created_at', { ascending: false }),
+            supabase
+                .from('student_quest_progress')
+                .select(`
+                    id,
+                    current_count,
+                    last_proof_image_url,
+                    last_submitted_at,
+                    status,
+                    class_quests(title, classes(name))
+                `)
+                .eq('student_id', studentId)
+                .not('last_submitted_at', 'is', null)
+                .order('last_submitted_at', { ascending: false })
+        ]);
+
+        const listening = (listeningData.data || []).map((s: any) => ({
+            id: s.id,
+            type: 'listening' as const,
+            title: `${s.listening_rounds?.listening_books?.name || ''} ${s.listening_rounds?.round_number || ''}회`,
+            score: s.score,
+            detail: `${s.correct_count}/${s.total_count}`,
+            createdAt: s.created_at
+        }));
+
+        const easy = (easyData.data || []).map((s: any) => ({
+            id: s.id,
+            type: 'easy' as const,
+            title: `${s.easy_rounds?.easy_books?.name || ''} ${s.easy_rounds?.round_number || ''}회`,
+            score: s.score,
+            detail: `${s.correct_count}/${s.total_count}`,
+            createdAt: s.created_at
+        }));
+
+        const quest = (questData.data || []).map((s: any) => ({
+            id: s.id,
+            type: 'quest' as const,
+            title: s.class_quests?.title || '숙제',
+            className: s.class_quests?.classes?.name || '',
+            imageUrl: s.last_proof_image_url,
+            count: s.current_count,
+            status: s.status,
+            createdAt: s.last_submitted_at
+        }));
+
+        return { listening, easy, quest };
+    } catch (error: any) {
+        console.error('Get Submissions By Student Error:', error);
+        return { listening: [], easy: [], quest: [] };
+    }
+}
