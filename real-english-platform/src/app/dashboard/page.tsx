@@ -4,7 +4,7 @@ import LearningPath from "@/components/dashboard/LearningPath";
 import MonthlyReport from "@/components/dashboard/MonthlyReport";
 import ParentLinkCode from "@/components/dashboard/ParentLinkCode";
 import { Badge } from "@/components/ui/badge";
-import { getUserProfile, getPaymentStatus, getClassInfo, getDashboardData } from "@/lib/data/dashboard";
+import { getUserProfile, getPaymentStatus, getClassInfo, getDashboardData, getReportData } from "@/lib/data/dashboard";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { format } from "date-fns";

@@ -164,3 +164,214 @@ export async function getDashboardData() {
 
     return { user, payment, classInfo, recentLessons, quests };
 }
+
+// ============================================
+// 월간 리포트 데이터 조회
+// ============================================
+
+export interface ReportSummary {
+    // 성적 추이
+    mockTrend: { name: string; score: number; label: string }[];
+    listeningTrend: { name: string; score: number; label: string }[];
+    easyTrend: { name: string; score: number; label: string }[];
+    // 숙제 완료율
+    weeklyHomework: { total: number; completed: number; rate: number };
+    monthlyHomework: { total: number; completed: number; rate: number };
+    // 퀘스트 진행
+    questProgress: { total: number; completed: number; rate: number };
+    // 통계 요약
+    stats: {
+        mockAvg: number;
+        mockCount: number;
+        listeningAvg: number;
+        listeningCount: number;
+        easyAvg: number;
+        easyCount: number;
+        vocabPassRate: number;
+    };
+}
+
+export async function getReportData(): Promise<ReportSummary | null> {
+    const user = await getUserProfile();
+    if (!user) return null;
+
+    const studentId = user.id;
+
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceRoleKey) return null;
+
+    const supabase = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        serviceRoleKey
+    );
+
+    // 병렬로 모든 데이터 조회
+    const [
+        mockSubmissions,
+        listeningSubmissions,
+        easySubmissions,
+        classMember,
+        vocabChecks,
+        questProgress
+    ] = await Promise.all([
+        // 모의고사 제출
+        supabase
+            .from('exam_submissions')
+            .select('score, created_at, exams(title)')
+            .eq('student_id', studentId)
+            .order('created_at', { ascending: true })
+            .limit(10),
+        // 듣기 제출
+        supabase
+            .from('listening_submissions')
+            .select('score, created_at, listening_rounds(round_number, listening_books(name))')
+            .eq('student_id', studentId)
+            .order('created_at', { ascending: true })
+            .limit(10),
+        // 쉬운문제 제출
+        supabase
+            .from('easy_submissions')
+            .select('score, created_at, easy_rounds(round_number, easy_books:book_id(name))')
+            .eq('student_id', studentId)
+            .order('created_at', { ascending: true })
+            .limit(10),
+        // 수강 중인 반
+        supabase
+            .from('class_members')
+            .select('class_id')
+            .eq('student_id', studentId)
+            .eq('status', 'active')
+            .single(),
+        // 단어 테스트 결과
+        supabase
+            .from('student_lesson_checks')
+            .select('vocab_test_passed')
+            .eq('student_id', studentId)
+            .not('vocab_test_passed', 'is', null),
+        // 퀘스트 진행
+        supabase
+            .from('student_quest_progress')
+            .select('status, quest_id, class_quests!inner(is_active)')
+            .eq('student_id', studentId)
+    ]);
+
+    // 모의고사 추이 변환
+    const mockTrend = (mockSubmissions.data || []).map((item: any, idx: number) => ({
+        name: `${idx + 1}회`,
+        score: item.score,
+        label: item.exams?.title || `모의고사 ${idx + 1}`
+    }));
+
+    // 듣기 추이 변환
+    const listeningTrend = (listeningSubmissions.data || []).map((item: any, idx: number) => ({
+        name: `${idx + 1}회`,
+        score: item.score,
+        label: `${item.listening_rounds?.listening_books?.name || '듣기'} ${item.listening_rounds?.round_number || idx + 1}회`
+    }));
+
+    // 쉬운문제 추이 변환
+    const easyTrend = (easySubmissions.data || []).map((item: any, idx: number) => ({
+        name: `${idx + 1}회`,
+        score: item.score,
+        label: `${item.easy_rounds?.easy_books?.name || '쉬운문제'} ${item.easy_rounds?.round_number || idx + 1}회`
+    }));
+
+    // 숙제 완료율 계산
+    const weeklyHomework = await calculateHomeworkRate(supabase, studentId, classMember.data?.class_id, 'week');
+    const monthlyHomework = await calculateHomeworkRate(supabase, studentId, classMember.data?.class_id, 'month');
+
+    // 퀘스트 진행률
+    const activeQuests = (questProgress.data || []).filter((q: any) => q.class_quests?.is_active);
+    const completedQuests = activeQuests.filter((q: any) => q.status === 'completed').length;
+    const questRate = activeQuests.length > 0 ? Math.round((completedQuests / activeQuests.length) * 100) : 0;
+
+    // 통계 계산
+    const mockScores = (mockSubmissions.data || []).map((d: any) => d.score);
+    const listeningScores = (listeningSubmissions.data || []).map((d: any) => d.score);
+    const easyScores = (easySubmissions.data || []).map((d: any) => d.score);
+    const vocabPassed = (vocabChecks.data || []).filter((d: any) => d.vocab_test_passed === true).length;
+    const vocabTotal = (vocabChecks.data || []).length;
+
+    return {
+        mockTrend,
+        listeningTrend,
+        easyTrend,
+        weeklyHomework,
+        monthlyHomework,
+        questProgress: {
+            total: activeQuests.length,
+            completed: completedQuests,
+            rate: questRate
+        },
+        stats: {
+            mockAvg: mockScores.length > 0 ? Math.round(mockScores.reduce((a: number, b: number) => a + b, 0) / mockScores.length) : 0,
+            mockCount: mockScores.length,
+            listeningAvg: listeningScores.length > 0 ? Math.round(listeningScores.reduce((a: number, b: number) => a + b, 0) / listeningScores.length) : 0,
+            listeningCount: listeningScores.length,
+            easyAvg: easyScores.length > 0 ? Math.round(easyScores.reduce((a: number, b: number) => a + b, 0) / easyScores.length) : 0,
+            easyCount: easyScores.length,
+            vocabPassRate: vocabTotal > 0 ? Math.round((vocabPassed / vocabTotal) * 100) : 0
+        }
+    };
+}
+
+async function calculateHomeworkRate(
+    supabase: any,
+    studentId: string,
+    classId: string | null,
+    period: 'week' | 'month'
+): Promise<{ total: number; completed: number; rate: number }> {
+    if (!classId) return { total: 0, completed: 0, rate: 0 };
+
+    const now = new Date();
+    let startDate = new Date(now);
+    if (period === 'week') {
+        startDate.setDate(now.getDate() - 7);
+    } else {
+        startDate.setMonth(now.getMonth() - 1);
+    }
+
+    const { data: lessons } = await supabase
+        .from('lesson_plans')
+        .select('id, vocab_hw, listening_hw, grammar_hw, other_hw')
+        .eq('class_id', classId)
+        .gte('date', startDate.toISOString().split('T')[0])
+        .lte('date', now.toISOString().split('T')[0]);
+
+    if (!lessons || lessons.length === 0) {
+        return { total: 0, completed: 0, rate: 100 };
+    }
+
+    let totalHomeworks = 0;
+    lessons.forEach((lesson: any) => {
+        if (lesson.vocab_hw) totalHomeworks++;
+        if (lesson.listening_hw) totalHomeworks++;
+        if (lesson.grammar_hw) totalHomeworks++;
+        if (lesson.other_hw) totalHomeworks++;
+    });
+
+    if (totalHomeworks === 0) return { total: 0, completed: 0, rate: 100 };
+
+    const lessonIds = lessons.map((l: any) => l.id);
+    const { data: checks } = await supabase
+        .from('student_lesson_checks')
+        .select('lesson_id, vocab_status, listening_status, grammar_status, other_status')
+        .eq('student_id', studentId)
+        .in('lesson_id', lessonIds);
+
+    let completedCount = 0;
+    const checksMap = new Map(checks?.map((c: any) => [c.lesson_id, c]) || []);
+
+    lessons.forEach((lesson: any) => {
+        const check = checksMap.get(lesson.id) as any;
+        if (check) {
+            if (lesson.vocab_hw && check.vocab_status === 'done') completedCount++;
+            if (lesson.listening_hw && check.listening_status === 'done') completedCount++;
+            if (lesson.grammar_hw && check.grammar_status === 'done') completedCount++;
+            if (lesson.other_hw && check.other_status === 'done') completedCount++;
+        }
+    });
+
+    const rate = Math.round((completedCount / totalHomeworks) * 100);
+    return { total: totalHomeworks, completed: completedCount, rate };
+}
