@@ -98,6 +98,7 @@ export default async function ChildDashboardPage({ params }: PageProps) {
                     />
                     <HomeworkProgress
                         quests={quests || []}
+                        classId={classInfo?.id}
                     />
                 </div>
 

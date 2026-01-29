@@ -78,6 +78,7 @@ export default async function DashboardPage() {
                         quests={quests || []}
                         todayStatus={todayStatus || undefined}
                         missedHomework={missedHomework || undefined}
+                        classId={classInfo?.id}
                     />
                 </div>
 

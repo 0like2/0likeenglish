@@ -28,12 +28,14 @@ interface HomeworkProgressProps {
     quests: any[];
     todayStatus?: TodayHomeworkStatus;
     missedHomework?: MissedHomeworkSummary;
+    classId?: string;
 }
 
 export default function HomeworkProgress({
     quests = [],
     todayStatus,
-    missedHomework
+    missedHomework,
+    classId
 }: HomeworkProgressProps) {
     // 1. Calculate Total Percentage based on Frequency
     const totalGoal = quests.reduce((acc, q) => acc + (q.weekly_frequency || 1), 0);
@@ -223,7 +225,7 @@ export default function HomeworkProgress({
                 )}
 
                 <div className="mt-4 pt-3 border-t border-slate-50 text-center">
-                    <Link href="/dashboard" className="text-xs text-blue-600 hover:underline flex items-center justify-center gap-1">
+                    <Link href={classId ? `/class/${classId}` : "/schedule"} className="text-xs text-blue-600 hover:underline flex items-center justify-center gap-1">
                         내 강의실에서 인증하기
                     </Link>
                 </div>
