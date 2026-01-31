@@ -561,7 +561,7 @@ export async function deleteBlogPost(postId: string) {
 export async function logActivity(
     userId: string | null,
     userName: string | null,
-    actionType: 'submit' | 'exam' | 'payment' | 'feedback' | 'listening' | 'class_assign',
+    actionType: 'submit' | 'exam' | 'payment' | 'feedback' | 'listening' | 'class_assign' | 'approve' | 'reject',
     description: string,
     metadata: Record<string, any> = {}
 ) {
